@@ -53,11 +53,9 @@ de ce chiffrement une barrière contre l'indexation et le passant, pas une prote
 attaquant motivé. Le renforcement passe par une phrase de passe plus longue, pas par un autre
 algorithme.
 
-Depuis le 2026-09-23, le mot de passe est une phrase de passe aléatoire d'environ 77 bits
-d'entropie : la force brute n'est plus réaliste. Deux limites demeurent. Toute personne qui a le mot
-de passe, ou un appareil où il est retenu, lit le contenu. Et les `data.enc` des deux premiers
-commits, chiffrés avec l'ancien mot de passe de 8 caractères, restent dans l'historique git tant
-qu'il n'est pas réécrit.
+Le mot de passe actuel est court, choisi pour être retenu facilement : cette limite s'applique.
+Les `data.enc` des commits précédents restent dans l'historique git, chiffrés avec les mots de passe
+précédents.
 
 Changer de mot de passe :
 
@@ -204,5 +202,3 @@ les matières, avec le nombre de questions de chaque banque.
 - Questions des 8 autres matières : aucune banque n'existe encore dans le dépôt cours.
 - Vérifier sur un vrai téléphone. Les tests automatisés tournent à 390 px de large, écran tactile
   simulé, et sur ordinateur.
-- Si l'ancien bundle, chiffré avec le mot de passe de 8 caractères, ne doit plus être récupérable :
-  réécrire l'historique git et forcer le push (voir Limite).
