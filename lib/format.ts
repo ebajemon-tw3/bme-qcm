@@ -41,6 +41,11 @@ export function inDays(days: number) {
   return `dans ${days} j`;
 }
 
+// Accord en nombre : plural(2, "session") -> "2 sessions", plural(1, "session") -> "1 session".
+export function plural(count: number, singular: string, pluralForm = `${singular}s`) {
+  return `${count}\u00a0${count > 1 ? pluralForm : singular}`;
+}
+
 export function chapterRange(chapters: number[]) {
   if (chapters.length === 0) return "";
   const sorted = [...chapters].sort((a, b) => a - b);

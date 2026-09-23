@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { setFlag, useHistory, type AnswerRecord, type SessionRecord } from "@/lib/history";
+import { plural } from "@/lib/format";
 import { isCorrect, MODE_LABEL } from "@/lib/quiz";
 import { storeRun, type RunAnswer, type RunState } from "@/lib/run-store";
 import type { Question, Subject } from "@/lib/types";
@@ -208,7 +209,7 @@ export function QcmRunner({
               </span>
               <span aria-hidden>│</span>
               <span>
-                {exam ? `${answeredCount} répondues` : `${correctCount} justes sur ${validated.length}`}
+                {exam ? plural(answeredCount, "répondue") : `${plural(correctCount, "juste")} sur ${validated.length}`}
               </span>
             </>
           }
@@ -235,8 +236,8 @@ export function QcmRunner({
       {exam ? (
         <details className="border-t pt-3">
           <summary className="cursor-pointer py-2 text-sm">
-            Toutes les questions : {answeredCount}/{questions.length} répondues
-            {flaggedCount ? `, ${flaggedCount} marquées` : ""}
+            Toutes les questions : {answeredCount}/{questions.length} avec réponse
+            {flaggedCount ? `, ${plural(flaggedCount, "marquée")}` : ""}
           </summary>
           <nav aria-label="Questions de l'examen" className="mt-3 grid grid-cols-6 gap-1 sm:grid-cols-10">
             {questions.map((q, i) => {
@@ -298,9 +299,12 @@ export function QcmRunner({
             <AlertDialogTitle>Remettre la copie ?</AlertDialogTitle>
             <AlertDialogDescription>
               {questions.length - answeredCount > 0
-                ? `${questions.length - answeredCount} questions sans réponse seront comptées fausses.`
+                ? questions.length - answeredCount > 1
+                  ? `${questions.length - answeredCount} questions sans réponse seront comptées fausses.`
+                  : "1 question sans réponse sera comptée fausse."
                 : "Toutes les questions ont une réponse."}
-              {flaggedCount ? ` ${flaggedCount} questions sont marquées pour y revenir.` : ""}
+              {flaggedCount > 1 ? ` ${flaggedCount} questions sont marquées pour y revenir.` : ""}
+              {flaggedCount === 1 ? " 1 question est marquée pour y revenir." : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -316,7 +320,9 @@ export function QcmRunner({
             <AlertDialogTitle>Quitter la session ?</AlertDialogTitle>
             <AlertDialogDescription>
               {!exam && validated.length > 0
-                ? `Les ${validated.length} réponses validées peuvent être enregistrées dans l'historique.`
+                ? validated.length > 1
+                  ? `Les ${validated.length} réponses validées peuvent être enregistrées dans l'historique.`
+                  : "La réponse validée peut être enregistrée dans l'historique."
                 : exam
                   ? "L'examen sera abandonné sans être noté. Pour le noter, utiliser Remettre."
                   : "Aucune réponse validée : rien ne sera enregistré."}

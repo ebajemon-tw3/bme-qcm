@@ -38,7 +38,7 @@ export function SessionView() {
       <SessionSummary session={session} subject={subject} />
       {wrong ? (
         <Button asChild size="lg" className="h-11 w-full sm:w-fit">
-          <Link href={`/qcm?c=${session.subject}&p=session&s=${session.id}`}>Refaire les {wrong} erreurs</Link>
+          <Link href={`/qcm?c=${session.subject}&p=session&s=${session.id}`}>{wrong > 1 ? `Refaire les ${wrong} erreurs` : "Refaire l'erreur"}</Link>
         </Button>
       ) : null}
       <Section title="Question par question">

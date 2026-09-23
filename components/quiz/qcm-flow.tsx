@@ -85,7 +85,7 @@ export function QcmFlow() {
                 })
               }
             >
-              Refaire les {wrong.length} erreurs
+              {wrong.length > 1 ? `Refaire les ${wrong.length} erreurs` : "Refaire l'erreur"}
             </Button>
           ) : null}
           <Button size="lg" variant="outline" className="h-11" onClick={() => setResult(null)}>

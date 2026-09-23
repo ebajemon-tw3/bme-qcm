@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { dayTime, isoDay } from "@/lib/format";
+import { dayTime, isoDay, plural } from "@/lib/format";
 import { clearHistory, exportHistory, importHistory, useHistory } from "@/lib/history";
 
 export function SettingsView() {
@@ -33,7 +33,7 @@ export function SettingsView() {
     link.download = `bme-qcm-historique-${isoDay(new Date())}.json`;
     link.click();
     URL.revokeObjectURL(url);
-    setMessage({ tone: "ok", text: `${history.sessions.length} sessions exportées.` });
+    setMessage({ tone: "ok", text: `${plural(history.sessions.length, "session exportée", "sessions exportées")}.` });
   }
 
   async function upload(event: React.ChangeEvent<HTMLInputElement>) {
@@ -44,7 +44,9 @@ export function SettingsView() {
       const { added, skipped } = importHistory(await file.text());
       setMessage({
         tone: "ok",
-        text: `${added} sessions ajoutées${skipped ? `, ${skipped} déjà présentes ignorées` : ""}. Marques fusionnées.`,
+        text: `${plural(added, "session ajoutée", "sessions ajoutées")}${
+          skipped ? `, ${plural(skipped, "déjà présente ignorée", "déjà présentes ignorées")}` : ""
+        }. Marques fusionnées.`,
       });
     } catch (error) {
       setMessage({
@@ -60,7 +62,7 @@ export function SettingsView() {
 
       <Section title="Historique">
         <p className="text-sm text-muted-foreground">
-          L&apos;historique vit dans ce navigateur : {history.sessions.length} sessions. Pour passer d&apos;un appareil à
+          L&apos;historique vit dans ce navigateur : {plural(history.sessions.length, "session")}. Pour passer d&apos;un appareil à
           l&apos;autre, exporter ici puis importer sur l&apos;autre appareil. L&apos;import fusionne, il n&apos;efface rien.
           Le fichier contient des identifiants de questions et des réponses, pas de texte de cours.
         </p>
@@ -90,7 +92,7 @@ export function SettingsView() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Effacer l&apos;historique de ce navigateur ?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {history.sessions.length} sessions et toutes les marques seront supprimées de cet appareil. Exporter
+                  {plural(history.sessions.length, "session")} et toutes les marques seront supprimées de cet appareil. Exporter
                   d&apos;abord pour les conserver.
                 </AlertDialogDescription>
               </AlertDialogHeader>
