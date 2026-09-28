@@ -14,6 +14,7 @@ export const TITLES: Record<string, string> = {
   "/session": "Revue de session",
   "/points-faibles": "Points faibles",
   "/matiere": "Matière",
+  "/fiche": "Fiche de révision",
   "/reglages": "Réglages",
 };
 

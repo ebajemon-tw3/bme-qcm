@@ -9,7 +9,7 @@ export function MdInline({ text }: { text: string }) {
         if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
         if (part.startsWith("`") && part.endsWith("`")) {
           return (
-            <code key={i} className="text-[0.95em] text-muted-foreground">
+            <code key={i} className="text-[0.95em] text-muted-foreground break-all">
               {part.slice(1, -1)}
             </code>
           );

@@ -15,6 +15,8 @@ export interface CalEvent {
   // Minutes depuis minuit. null : événement sans heure, affiché en « journée entière ».
   start: number | null;
   end: number | null;
+  // Fin non écrite dans les sources : la durée affichée est indicative, seule l'heure de début est sûre.
+  openEnd?: boolean;
   kind: EventKind;
 }
 
@@ -82,17 +84,22 @@ function slot(subject: Subject | undefined, day: string) {
 function times(...sources: string[]) {
   for (const s of sources) {
     const range = RANGE.exec(s);
-    if (range) return { start: +range[1] * 60 + +range[2], end: +range[3] * 60 + +range[4] };
+    if (range) return { start: +range[1] * 60 + +range[2], end: +range[3] * 60 + +range[4], openEnd: false };
   }
   for (const s of sources) {
     const start = START.exec(s);
     if (start) {
       const from = +start[1] * 60 + +start[2];
       const length = LENGTH.exec(s);
-      return { start: from, end: from + (length ? +length[1] : DEFAULT_LENGTH) };
+      return { start: from, end: from + (length ? +length[1] : DEFAULT_LENGTH), openEnd: !length };
     }
   }
-  return { start: null, end: null };
+  return { start: null, end: null, openEnd: false };
+}
+
+export function timeLabel(e: CalEvent) {
+  if (e.start === null) return "";
+  return e.openEnd ? `à partir de ${hhmm(e.start)}` : `${hhmm(e.start)} à ${hhmm(e.end!)}`;
 }
 
 // Séances régulières générées depuis « Créneau et salle » sur la période d'enseignement. La colonne

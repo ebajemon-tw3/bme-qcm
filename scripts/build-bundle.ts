@@ -5,16 +5,17 @@
 // Lit les fiches CLAUDE.md, calendrier.md et les banques de questions. Le dépôt cours est lu,
 // jamais modifié. Le fichier produit est publié tel quel : il est lisible par tous.
 import { existsSync } from "node:fs";
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { Bundle, Deadline, Question, SessionBlock, Stay, Subject, UndatedDeadline } from "../lib/types";
-import { findSection, firstTable, parseChapterList, stripMarkdown } from "./markdown";
+import type { Bundle, Deadline, PdfDoc, Question, SessionBlock, Sheet, Stay, Subject, UndatedDeadline } from "../lib/types";
+import { findSection, firstTable, parseChapterList, parseDoc, stripMarkdown } from "./markdown";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const COURS_DIR = process.env.COURS_DIR ?? path.join(os.homedir(), "Documents", "erasmus", "cours");
 const OUT_JSON = path.join(ROOT, "public", "data.json");
+const OUT_PDF = path.join(ROOT, "public", "fiches");
 const SUBJECT_DIR = /^([A-Z0-9]+)_([a-z0-9-]+)$/;
 const QUESTION_FILES = ["exams/questions.ts", "exams/questions.json"];
 
@@ -59,12 +60,16 @@ async function loadQuestions(code: string, dir: string) {
     if (!existsSync(file)) continue;
     if (rel.endsWith(".json")) {
       const parsed = JSON.parse(await readFile(file, "utf8"));
-      return { source: rel, questions: validateQuestions(code, rel, Array.isArray(parsed) ? parsed : parsed.questions) };
+      return {
+        source: rel,
+        questions: validateQuestions(code, rel, Array.isArray(parsed) ? parsed : parsed.questions),
+        titles: (Array.isArray(parsed) ? {} : (parsed.chapterTitles ?? {})) as Record<number, string>,
+      };
     }
     const mod = await import(pathToFileURL(file).href);
-    return { source: rel, questions: validateQuestions(code, rel, mod.questions) };
+    return { source: rel, questions: validateQuestions(code, rel, mod.questions), titles: {} as Record<number, string> };
   }
-  return { source: null, questions: [] as Question[] };
+  return { source: null, questions: [] as Question[], titles: {} as Record<number, string> };
 }
 
 // Titre de module tiré du topic de synthèse de chaque module, intitulé "<titre du module> Summary".
@@ -93,6 +98,44 @@ function sessionBlocks(planning: Subject["planning"]): SessionBlock[] {
     .filter((block) => block.chapters.length > 0);
 }
 
+// Fiches de révision exams/fiche-*.md, titre tiré du premier titre de niveau 1.
+async function loadSheets(dir: string): Promise<Sheet[]> {
+  const exams = path.join(dir, "exams");
+  if (!existsSync(exams)) return [];
+  const files = (await readdir(exams)).filter((f) => /^fiche-.+\.md$/.test(f)).sort();
+  return Promise.all(
+    files.map(async (file) => {
+      const md = await readFile(path.join(exams, file), "utf8");
+      return {
+        slug: file.replace(/^fiche-/, "").replace(/\.md$/, ""),
+        file: `exams/${file}`,
+        title: md.match(/^# (.+)$/m)?.[1] ?? file,
+        blocks: parseDoc(md.replace(/^# .+$/m, "")),
+      };
+    }),
+  );
+}
+
+// PDF de révision exams/pdf/*.pdf, copiés dans public/fiches/<code>/. Titre : \doctitle de la
+// source LaTeX exams/latex/<nom>.tex quand elle existe, sinon le nom du fichier.
+async function loadPdfs(code: string, dir: string): Promise<PdfDoc[]> {
+  const src = path.join(dir, "exams", "pdf");
+  if (!existsSync(src)) return [];
+  const files = (await readdir(src)).filter((f) => f.endsWith(".pdf")).sort();
+  const out = path.join(OUT_PDF, code);
+  await mkdir(out, { recursive: true });
+  return Promise.all(
+    files.map(async (file) => {
+      await copyFile(path.join(src, file), path.join(out, file));
+      const tex = path.join(dir, "exams", "latex", file.replace(/\.pdf$/, ".tex"));
+      const title = existsSync(tex)
+        ? ((await readFile(tex, "utf8")).match(/\\newcommand\{\\doctitle\}\{(.+)\}/)?.[1] ?? file)
+        : file;
+      return { file, title, kb: Math.round((await stat(path.join(src, file))).size / 1024) };
+    }),
+  );
+}
+
 async function loadSubject(entry: string): Promise<{ subject: Subject; questions: Question[] }> {
   const [, code, slug] = entry.match(SUBJECT_DIR)!;
   const dir = path.join(COURS_DIR, entry);
@@ -104,7 +147,7 @@ async function loadSubject(entry: string): Promise<{ subject: Subject; questions
   const title =
     identity.find(([k]) => k === "Intitulé")?.[1] ?? heading.replace(new RegExp(`^${code},\\s*`), "");
   const planning = firstTable(findSection(md, "Planning des séances"));
-  const { source, questions } = await loadQuestions(code, dir);
+  const { source, questions, titles } = await loadQuestions(code, dir);
 
   return {
     subject: {
@@ -118,8 +161,10 @@ async function loadSubject(entry: string): Promise<{ subject: Subject; questions
       teachers: firstTable(findSection(md, "Enseignants")),
       planning,
       blocks: sessionBlocks(planning),
-      chapterTitles: chapterTitles(questions),
+      chapterTitles: { ...chapterTitles(questions), ...titles },
       questionSource: source,
+      sheets: await loadSheets(dir),
+      pdfs: await loadPdfs(code, dir),
     },
     questions,
   };
@@ -188,6 +233,7 @@ async function main() {
   };
   entries.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
 
+  await rm(OUT_PDF, { recursive: true, force: true });
   const subjects: Subject[] = [];
   const questions: Record<string, Question[]> = {};
   for (const entry of entries) {
@@ -214,7 +260,7 @@ async function main() {
   console.log(`Dépôt lu : ${COURS_DIR}`);
   for (const s of subjects) {
     const n = questions[s.code]?.length ?? 0;
-    console.log(`  ${s.code.padEnd(15)} ${String(n).padStart(4)} questions  ${s.blocks.length} blocs de séance`);
+    console.log(`  ${s.code.padEnd(15)} ${String(n).padStart(4)} questions  ${s.blocks.length} blocs de séance  ${s.sheets?.length ?? 0} fiches  ${s.pdfs?.length ?? 0} PDF`);
   }
   console.log(`Échéances : ${dated.length} datées, ${undated.length} non datées`);
   console.log(`Séjour : ${stay ? `${stay.start} au ${stay.end}` : "section absente de calendrier.md"}`);

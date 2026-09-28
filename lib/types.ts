@@ -36,6 +36,29 @@ export interface SessionBlock {
   chapters: number[];
 }
 
+// Fiche de révision exams/fiche-*.md, découpée en blocs au build.
+export type DocBlock =
+  | { type: "heading"; level: number; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "list"; ordered: boolean; items: string[] }
+  | { type: "quote"; paragraphs: string[] }
+  | { type: "table"; table: MdTable }
+  | { type: "rule" };
+
+export interface Sheet {
+  slug: string;
+  file: string;
+  title: string;
+  blocks: DocBlock[];
+}
+
+// Document PDF de révision exams/pdf/*.pdf, copié dans public/fiches/<code>/ au build.
+export interface PdfDoc {
+  file: string;
+  title: string;
+  kb: number;
+}
+
 export interface Subject {
   code: string;
   slug: string;
@@ -49,6 +72,8 @@ export interface Subject {
   blocks: SessionBlock[];
   chapterTitles: Record<number, string>;
   questionSource: string | null;
+  sheets?: Sheet[];
+  pdfs?: PdfDoc[];
 }
 
 export interface Deadline {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BlockCard } from "@/components/block-card";
 import { useData } from "@/components/data-provider";
+import { BASE_PATH } from "@/lib/bundle-client";
 import { DeadlineList, upcoming } from "@/components/deadline-list";
 import { MdInline } from "@/components/md-inline";
 import { MdTable } from "@/components/md-table";
@@ -113,6 +114,40 @@ export function SubjectView() {
                 muted={(row) => dateCol !== -1 && /^\d{4}-\d{2}-\d{2}$/.test(row[dateCol]) && row[dateCol] < today}
               />
             </details>
+          </Section>
+        ) : null}
+
+        {subject.pdfs?.length ? (
+          <Section title="Documents de révision">
+            <ul className="flex flex-col divide-y border-y">
+              {subject.pdfs.map((pdf) => (
+                <li key={pdf.file} className="flex items-baseline justify-between gap-4 py-3 text-sm">
+                  <a
+                    href={`${BASE_PATH}/fiches/${subject.code}/${pdf.file}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline-offset-4 hover:underline"
+                  >
+                    {pdf.title}
+                  </a>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">PDF, {pdf.kb} Ko</span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ) : null}
+
+        {subject.sheets?.length && !subject.pdfs?.length ? (
+          <Section title="Fiches de révision">
+            <ul className="flex flex-col divide-y border-y">
+              {subject.sheets.map((sheet) => (
+                <li key={sheet.slug} className="py-3 text-sm">
+                  <Link href={`/fiche?c=${subject.code}&f=${sheet.slug}`} className="underline-offset-4 hover:underline">
+                    {sheet.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </Section>
         ) : null}
 

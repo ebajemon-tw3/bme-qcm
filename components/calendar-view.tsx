@@ -20,6 +20,7 @@ import {
   layoutDay,
   monday,
   recurringSlots,
+  timeLabel,
 } from "@/lib/calendar";
 import { isoDay } from "@/lib/format";
 import type { Stay } from "@/lib/types";
@@ -86,7 +87,7 @@ function EventButton({
       </span>
       {showTime && event.start !== null ? (
         <span className="text-muted-foreground tabular-nums">
-          {hhmm(event.start)} à {hhmm(event.end!)}
+          {timeLabel(event)}
           {event.room ? `, ${event.room}` : ""}
         </span>
       ) : null}
@@ -401,7 +402,7 @@ export function CalendarView() {
                 </SheetTitle>
                 <SheetDescription className="first-letter:uppercase">
                   {formatDay(selected.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-                  {selected.start !== null ? `, ${hhmm(selected.start)} à ${hhmm(selected.end!)}` : ""}
+                  {selected.start !== null ? `, ${timeLabel(selected)}` : ""}
                 </SheetDescription>
               </SheetHeader>
               <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-2 p-4 text-sm">

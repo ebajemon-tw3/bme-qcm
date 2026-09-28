@@ -294,7 +294,7 @@ export function QcmSetup({
           </ToggleGroup>
           <FieldDescription>
             {mode === "training"
-              ? "Correction, justification Cisco et référence de section après chaque question."
+              ? "Correction, justification et référence de section après chaque question."
               : "Aucune correction avant la remise. Réponses modifiables et questions marquables jusqu'à la fin."}
           </FieldDescription>
         </FieldSet>

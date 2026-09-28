@@ -1,5 +1,5 @@
 // Lecture des fiches CLAUDE.md et de calendrier.md : sections et tableaux markdown.
-import type { MdTable } from "../lib/types";
+import type { DocBlock, MdTable } from "../lib/types";
 
 // Contenu d'une section dont le titre commence par `prefix`, jusqu'au titre suivant de même niveau.
 export function findSection(md: string, prefix: string, level = 2): string | null {
@@ -13,13 +13,14 @@ export function findSection(md: string, prefix: string, level = 2): string | nul
   return lines.slice(start + 1, end === -1 ? undefined : end).join("\n");
 }
 
+// Un « \| » dans une cellule est un caractère, pas un séparateur (kets |0⟩ des fiches de quantique).
 function splitRow(line: string): string[] {
   return line
     .trim()
     .replace(/^\|/, "")
-    .replace(/\|$/, "")
-    .split("|")
-    .map((cell) => cell.trim());
+    .replace(/(?<!\\)\|$/, "")
+    .split(/(?<!\\)\|/)
+    .map((cell) => cell.trim().replace(/\\\|/g, "|"));
 }
 
 // Premier tableau markdown du texte : en-tête, séparateur, lignes.
@@ -60,4 +61,73 @@ export function parseChapterList(cell: string): number[] {
     if (single) found.add(Number(single[1]));
   }
   return [...found].sort((a, b) => a - b);
+}
+
+// Fiche markdown en blocs : titres, paragraphes, listes, citations, tableaux, séparateurs.
+export function parseDoc(md: string): DocBlock[] {
+  const lines = md.split("\n");
+  const blocks: DocBlock[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+    const heading = trimmed.match(/^(#{1,4}) (.+)$/);
+    if (heading) {
+      blocks.push({ type: "heading", level: heading[1].length, text: heading[2] });
+      i++;
+      continue;
+    }
+    if (/^-{3,}$/.test(trimmed)) {
+      blocks.push({ type: "rule" });
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("|")) {
+      const start = i;
+      while (i < lines.length && lines[i].trim().startsWith("|")) i++;
+      const table = firstTable(lines.slice(start, i).join("\n"));
+      if (table) blocks.push({ type: "table", table });
+      continue;
+    }
+    if (trimmed.startsWith(">")) {
+      const paragraphs: string[] = [];
+      let current: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith(">")) {
+        const text = lines[i].trim().replace(/^>\s?/, "");
+        if (text) current.push(text);
+        else if (current.length) {
+          paragraphs.push(current.join(" "));
+          current = [];
+        }
+        i++;
+      }
+      if (current.length) paragraphs.push(current.join(" "));
+      blocks.push({ type: "quote", paragraphs });
+      continue;
+    }
+    const item = /^(\d+\.|-) /;
+    if (item.test(trimmed)) {
+      const ordered = /^\d+\./.test(trimmed);
+      const items: string[] = [];
+      while (i < lines.length && lines[i].trim()) {
+        const t = lines[i].trim();
+        if (item.test(t)) items.push(t.replace(item, ""));
+        else items[items.length - 1] += " " + t;
+        i++;
+      }
+      blocks.push({ type: "list", ordered, items });
+      continue;
+    }
+    const text: string[] = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,4} |\||>|-{3,}$|\d+\. |- )/.test(lines[i].trim())) {
+      text.push(lines[i].trim());
+      i++;
+    }
+    blocks.push({ type: "paragraph", text: text.join(" ") });
+  }
+  return blocks;
 }
