@@ -1,24 +1,20 @@
-// Construit public/data.enc à partir du dépôt cours.
+// Construit public/data.json à partir du dépôt cours.
 //
-//   SITE_PASSWORD=... bun run bundle
+//   bun run bundle
 //
-// Lit les fiches CLAUDE.md, calendrier.md et les banques de questions, écrit le JSON en clair
-// dans data/bundle.json (gitignoré) puis sa version compressée et chiffrée dans public/data.enc.
-// Le dépôt cours est lu, jamais modifié.
+// Lit les fiches CLAUDE.md, calendrier.md et les banques de questions. Le dépôt cours est lu,
+// jamais modifié. Le fichier produit est publié tel quel : il est lisible par tous.
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { gzipSync } from "node:zlib";
-import { encryptBundle, PBKDF2_ITERATIONS } from "../lib/crypto";
 import type { Bundle, Deadline, Question, SessionBlock, Stay, Subject, UndatedDeadline } from "../lib/types";
 import { findSection, firstTable, parseChapterList, stripMarkdown } from "./markdown";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const COURS_DIR = process.env.COURS_DIR ?? path.join(os.homedir(), "Documents", "erasmus", "cours");
-const OUT_ENC = path.join(ROOT, "public", "data.enc");
-const OUT_JSON = path.join(ROOT, "data", "bundle.json");
+const OUT_JSON = path.join(ROOT, "public", "data.json");
 const SUBJECT_DIR = /^([A-Z0-9]+)_([a-z0-9-]+)$/;
 const QUESTION_FILES = ["exams/questions.ts", "exams/questions.json"];
 
@@ -180,8 +176,6 @@ async function loadCalendar(subjects: Subject[]) {
 }
 
 async function main() {
-  const password = process.env.SITE_PASSWORD;
-  if (!password) fail("variable SITE_PASSWORD absente. Lancer : SITE_PASSWORD=... bun run bundle");
   if (!existsSync(path.join(COURS_DIR, "calendrier.md"))) fail(`dépôt cours introuvable dans ${COURS_DIR} (régler COURS_DIR).`);
 
   const entries = (await readdir(COURS_DIR, { withFileTypes: true }))
@@ -215,10 +209,7 @@ async function main() {
   };
 
   const json = JSON.stringify(bundle);
-  const encrypted = await encryptBundle(new Uint8Array(gzipSync(json)), password);
-  await mkdir(path.dirname(OUT_JSON), { recursive: true });
-  await writeFile(OUT_JSON, JSON.stringify(bundle, null, 2));
-  await writeFile(OUT_ENC, encrypted);
+  await writeFile(OUT_JSON, json);
 
   console.log(`Dépôt lu : ${COURS_DIR}`);
   for (const s of subjects) {
@@ -228,8 +219,7 @@ async function main() {
   console.log(`Échéances : ${dated.length} datées, ${undated.length} non datées`);
   console.log(`Séjour : ${stay ? `${stay.start} au ${stay.end}` : "section absente de calendrier.md"}`);
   console.log(`Semestre : ${semester ? `${semester.start} au ${semester.end}` : "section absente de calendrier.md"}`);
-  console.log(`JSON en clair : ${path.relative(ROOT, OUT_JSON)} (${(json.length / 1024).toFixed(0)} Ko, gitignoré)`);
-  console.log(`Bundle chiffré : ${path.relative(ROOT, OUT_ENC)} (${(encrypted.length / 1024).toFixed(0)} Ko, PBKDF2 ${PBKDF2_ITERATIONS} itérations)`);
+  console.log(`Données : ${path.relative(ROOT, OUT_JSON)} (${(json.length / 1024).toFixed(0)} Ko)`);
 }
 
 await main();

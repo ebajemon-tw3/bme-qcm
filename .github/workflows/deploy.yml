@@ -30,12 +30,6 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      # Refuse de publier un data.enc chiffré avec un autre mot de passe que le secret du dépôt.
-      - name: Vérifier que data.enc se déchiffre avec SITE_PASSWORD
-        run: bun run verify-bundle
-        env:
-          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
-
       - name: Build statique
         run: bun run build
         env:

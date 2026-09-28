@@ -19,7 +19,7 @@ import { dayTime, isoDay, plural } from "@/lib/format";
 import { clearHistory, exportHistory, importHistory, useHistory } from "@/lib/history";
 
 export function SettingsView() {
-  const { bundle, remembered, forgetPassword } = useData();
+  const { bundle } = useData();
   const history = useHistory();
   const fileInput = React.useRef<HTMLInputElement>(null);
   const [message, setMessage] = React.useState<{ tone: "ok" | "bad"; text: string } | null>(null);
@@ -114,17 +114,6 @@ export function SettingsView() {
         <p role="status" className={message?.tone === "bad" ? "text-sm text-bad" : "text-sm"}>
           {message?.text}
         </p>
-      </Section>
-
-      <Section title="Mot de passe">
-        <p className="text-sm text-muted-foreground">
-          {remembered
-            ? "Le mot de passe est retenu sur cet appareil : le site se déverrouille à l'ouverture."
-            : "Le mot de passe n'est pas retenu : il sera demandé à la prochaine ouverture."}
-        </p>
-        <Button size="lg" variant="outline" className="h-11 w-fit" onClick={forgetPassword}>
-          {remembered ? "Oublier le mot de passe et verrouiller" : "Verrouiller"}
-        </Button>
       </Section>
 
       <Section title="Données publiées">

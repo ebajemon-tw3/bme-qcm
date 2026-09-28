@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "eslint",
-    "bundle": "bun scripts/build-bundle.ts",
-    "verify-bundle": "bun scripts/verify-bundle.ts"
+    "bundle": "bun scripts/build-bundle.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

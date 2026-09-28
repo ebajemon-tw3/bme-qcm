@@ -40,8 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# JSON du bundle en clair : contenu de cours, ne quitte jamais la machine
-/data/
-
 # Skill shadcn pour les agents : copie locale, restaurable avec `npx skills experimental_install`
 /.claude/
