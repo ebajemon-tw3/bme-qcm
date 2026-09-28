@@ -11,6 +11,13 @@ export async function fetchEncryptedBundle() {
   return new Uint8Array(await response.arrayBuffer());
 }
 
+// `next dev` seulement : bundle en clair servi par app/dev-bundle, null s'il n'existe pas.
+export async function fetchDevBundle(): Promise<Bundle | null> {
+  if (process.env.NODE_ENV !== "development") return null;
+  const response = await fetch(`${BASE_PATH}/dev-bundle`, { cache: "no-cache" });
+  return response.ok ? ((await response.json()) as Bundle) : null;
+}
+
 export async function openBundle(file: Uint8Array<ArrayBuffer>, password: string): Promise<Bundle> {
   const compressed = await decryptBundle(file, password);
   const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream("gzip"));

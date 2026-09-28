@@ -1,5 +1,6 @@
 export const PAGES = [
   { href: "/", title: "Tableau de bord" },
+  { href: "/calendrier", title: "Calendrier" },
   { href: "/qcm", title: "QCM" },
   { href: "/historique", title: "Historique" },
   { href: "/points-faibles", title: "Points faibles" },
@@ -7,6 +8,7 @@ export const PAGES = [
 
 export const TITLES: Record<string, string> = {
   "/": "Tableau de bord",
+  "/calendrier": "Calendrier",
   "/qcm": "QCM",
   "/historique": "Historique",
   "/session": "Revue de session",

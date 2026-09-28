@@ -7,6 +7,7 @@ import { DeadlineList, upcoming } from "@/components/deadline-list";
 import { PageHeader, Section } from "@/components/page-header";
 import { SessionTable } from "@/components/session-table";
 import { StatGrid } from "@/components/stat-grid";
+import { StayProgress } from "@/components/stay-progress";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { dayTime, isoDay, percent } from "@/lib/format";
@@ -47,6 +48,8 @@ export default function HomePage() {
     <>
       <PageHeader title="Tableau de bord">Données publiées le {dayTime(bundle.generatedAt)}.</PageHeader>
       <div className="flex flex-col gap-10">
+        <StayProgress stay={bundle.stay} today={today} />
+
         <StatGrid
           items={[
             {
@@ -89,7 +92,14 @@ export default function HomePage() {
           </Section>
         ) : null}
 
-        <Section title="Échéances des 14 prochains jours">
+        <Section
+          title="Échéances des 14 prochains jours"
+          action={
+            <Link href="/calendrier" className="text-sm underline underline-offset-4">
+              Calendrier complet
+            </Link>
+          }
+        >
           <DeadlineList deadlines={upcoming(bundle.deadlines, today, 14)} today={today} subjects={bundle.subjects} />
         </Section>
 

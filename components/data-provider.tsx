@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { UnlockScreen } from "@/components/unlock-screen";
-import { fetchEncryptedBundle, openBundle } from "@/lib/bundle-client";
+import { fetchDevBundle, fetchEncryptedBundle, openBundle } from "@/lib/bundle-client";
 import { WrongPasswordError } from "@/lib/crypto";
 import type { Bundle } from "@/lib/types";
 
@@ -57,6 +57,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
+      const devBundle = await fetchDevBundle().catch(() => null);
+      if (devBundle) {
+        if (!cancelled) setPhase({ name: "ready", bundle: devBundle, remembered: false });
+        return;
+      }
       try {
         file.current = await fetchEncryptedBundle();
       } catch (error) {

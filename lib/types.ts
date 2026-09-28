@@ -67,11 +67,20 @@ export interface UndatedDeadline {
   status: string;
 }
 
+export interface Stay {
+  start: string;
+  end: string;
+}
+
 export interface Bundle {
   version: 1;
   generatedAt: string;
   subjects: Subject[];
   deadlines: Deadline[];
   undated: UndatedDeadline[];
+  // Absent des bundles produits avant l'ajout de la section « Séjour » de calendrier.md.
+  stay?: Stay | null;
+  // Période d'enseignement, section « Semestre » de calendrier.md.
+  semester?: Stay | null;
   questions: Record<string, Question[]>;
 }

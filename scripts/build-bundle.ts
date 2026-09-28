@@ -12,7 +12,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import { encryptBundle, PBKDF2_ITERATIONS } from "../lib/crypto";
-import type { Bundle, Deadline, Question, SessionBlock, Subject, UndatedDeadline } from "../lib/types";
+import type { Bundle, Deadline, Question, SessionBlock, Stay, Subject, UndatedDeadline } from "../lib/types";
 import { findSection, firstTable, parseChapterList, stripMarkdown } from "./markdown";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -138,6 +138,13 @@ function subjectCodes(label: string, sigles: Map<string, string>, all: string[])
     .filter((c): c is string => Boolean(c));
 }
 
+// Première ligne d'un tableau à deux colonnes de dates : début, fin.
+function period(md: string, section: string): Stay | null {
+  const row = firstTable(findSection(md, section))?.rows[0] ?? [];
+  const iso = /^\d{4}-\d{2}-\d{2}$/;
+  return iso.test(row[0] ?? "") && iso.test(row[1] ?? "") ? { start: row[0], end: row[1] } : null;
+}
+
 async function loadCalendar(subjects: Subject[]) {
   const md = await readFile(path.join(COURS_DIR, "calendrier.md"), "utf8");
   const sigles = new Map<string, string>();
@@ -169,7 +176,7 @@ async function loadCalendar(subjects: Subject[]) {
       status: row[2] ?? "",
     }),
   );
-  return { dated, undated };
+  return { dated, undated, stay: period(md, "Séjour"), semester: period(md, "Semestre") };
 }
 
 async function main() {
@@ -194,7 +201,7 @@ async function main() {
     subjects.push(loaded.subject);
     if (loaded.questions.length > 0) questions[loaded.subject.code] = loaded.questions;
   }
-  const { dated, undated } = await loadCalendar(subjects);
+  const { dated, undated, stay, semester } = await loadCalendar(subjects);
 
   const bundle: Bundle = {
     version: 1,
@@ -202,6 +209,8 @@ async function main() {
     subjects,
     deadlines: dated,
     undated,
+    stay,
+    semester,
     questions,
   };
 
@@ -217,6 +226,8 @@ async function main() {
     console.log(`  ${s.code.padEnd(15)} ${String(n).padStart(4)} questions  ${s.blocks.length} blocs de séance`);
   }
   console.log(`Échéances : ${dated.length} datées, ${undated.length} non datées`);
+  console.log(`Séjour : ${stay ? `${stay.start} au ${stay.end}` : "section absente de calendrier.md"}`);
+  console.log(`Semestre : ${semester ? `${semester.start} au ${semester.end}` : "section absente de calendrier.md"}`);
   console.log(`JSON en clair : ${path.relative(ROOT, OUT_JSON)} (${(json.length / 1024).toFixed(0)} Ko, gitignoré)`);
   console.log(`Bundle chiffré : ${path.relative(ROOT, OUT_ENC)} (${(encrypted.length / 1024).toFixed(0)} Ko, PBKDF2 ${PBKDF2_ITERATIONS} itérations)`);
 }
