@@ -12,7 +12,7 @@ import { SessionSummary } from "@/components/session-summary";
 import { Button } from "@/components/ui/button";
 import { dayTime } from "@/lib/format";
 import { saveSession, type SessionRecord } from "@/lib/history";
-import { newId } from "@/lib/quiz";
+import { drawChoiceOrder, newId, withChoiceOrder } from "@/lib/quiz";
 import { clearRun, loadRun, storeRun, type RunState } from "@/lib/run-store";
 
 // Retire d'une session reprise les questions qui ne sont plus dans la banque publiée.
@@ -34,7 +34,10 @@ export function QcmFlow() {
   const [run, setRun] = React.useState<RunState | null>(null);
   const [result, setResult] = React.useState<SessionRecord | null>(null);
 
-  function start(next: RunState) {
+  function start(run: RunState) {
+    const next = run.choiceOrder
+      ? run
+      : { ...run, choiceOrder: drawChoiceOrder(run.questionIds.map((id) => byId.get(id)!)) };
     storeRun(next);
     setPending(null);
     setResult(null);
@@ -55,7 +58,7 @@ export function QcmFlow() {
 
   if (run) {
     const subject = bundle.subjects.find((s) => s.code === run.subject)!;
-    const questions = run.questionIds.map((id) => byId.get(id)!);
+    const questions = run.questionIds.map((id) => withChoiceOrder(byId.get(id)!, run.choiceOrder?.[id]));
     return <QcmRunner key={run.id} initial={run} subject={subject} questions={questions} onFinish={finish} onQuit={quit} />;
   }
 

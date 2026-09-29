@@ -20,6 +20,8 @@ export interface RunState {
   index: number;
   answers: Record<string, RunAnswer>;
   startedAt: string;
+  /** Ordre d'affichage des options par question, tiré au début de la session. */
+  choiceOrder?: Record<string, string[]>;
 }
 
 const KEY = "bmeqcm.run.v1";

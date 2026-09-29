@@ -93,7 +93,7 @@ export function GrokChoices({
             )}
           >
             <span aria-hidden className="shrink-0 tabular-nums">
-              {choice.id}{" "}
+              {String.fromCharCode(97 + index)}{" "}
               <span className={checked ? "text-(--term-fg)" : "text-(--term-dim)"}>{marker}</span>
             </span>
             <span className="min-w-0 flex-1 break-words">

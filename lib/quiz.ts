@@ -38,6 +38,18 @@ export function pickQuestions(pool: Question[], order: Order, count: number) {
   return ordered.slice(0, Math.max(1, Math.min(count, pool.length)));
 }
 
+// L'ordre des options est tiré une fois par session : on ne retient pas une réponse par sa position.
+export function drawChoiceOrder(questions: Question[]) {
+  return Object.fromEntries(questions.map((q) => [q.id, shuffle(q.choices.map((c) => c.id))]));
+}
+
+export function withChoiceOrder(question: Question, order: string[] | undefined): Question {
+  if (!order) return question;
+  const byId = new Map(question.choices.map((c) => [c.id, c]));
+  const ordered = order.map((id) => byId.get(id)).filter((c) => c !== undefined);
+  return ordered.length === question.choices.length ? { ...question, choices: ordered } : question;
+}
+
 export function newId() {
   return crypto.randomUUID();
 }
