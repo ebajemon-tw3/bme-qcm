@@ -47,6 +47,7 @@ function validateQuestions(code: string, file: string, raw: unknown): Question[]
     }
     if (!["check", "quiz", "other"].includes(q.origin)) fail(`${where} : origin inconnue (${q.origin}).`);
     if (!["single", "multiple"].includes(q.kind)) fail(`${where} : kind inconnu (${q.kind}).`);
+    if (q.image !== undefined && !/^https:\/\//.test(q.image)) fail(`${where} : image doit être une URL https.`);
     if (!Array.isArray(q.choices) || q.choices.length < 2) fail(`${where} : au moins deux options attendues.`);
     const correct = q.choices.filter((c: { correct: unknown }) => c.correct === true).length;
     if (correct === 0) fail(`${where} : aucune bonne réponse.`);

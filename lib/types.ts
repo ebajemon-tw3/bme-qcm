@@ -22,6 +22,8 @@ export interface Question {
   prompt: string;
   choices: Choice[];
   explanation: string;
+  /** Exhibit de la question, image externe (netacad.com). */
+  image?: string;
 }
 
 export interface MdTable {

@@ -58,6 +58,17 @@ export function QuestionTurn({
         <RichText text={question.prompt} />
       </GrokMessage>
 
+      {question.image ? (
+        // Image externe servie par NetAcad : next/image ne s'applique pas à l'export statique.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={question.image}
+          alt="Exhibit de la question"
+          loading="lazy"
+          className="max-h-[28rem] w-full rounded-sm bg-white object-contain p-2"
+        />
+      ) : null}
+
       <GrokChoices
         label={`Options de la question ${position}`}
         kind={question.kind}
