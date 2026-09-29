@@ -18,6 +18,8 @@ const OUT_JSON = path.join(ROOT, "public", "data.json");
 const OUT_PDF = path.join(ROOT, "public", "fiches");
 const SUBJECT_DIR = /^([A-Z0-9]+)_([a-z0-9-]+)$/;
 const QUESTION_FILES = ["exams/questions.ts", "exams/questions.json"];
+// Banque rédigée à la main à partir des labs, fusionnée avec la banque principale.
+const LAB_QUESTION_FILE = "exams/questions-labs.json";
 
 function fail(message: string): never {
   console.error(`Erreur : ${message}`);
@@ -54,22 +56,35 @@ function validateQuestions(code: string, file: string, raw: unknown): Question[]
   return raw as Question[];
 }
 
-async function loadQuestions(code: string, dir: string) {
-  for (const rel of QUESTION_FILES) {
-    const file = path.join(dir, rel);
-    if (!existsSync(file)) continue;
-    if (rel.endsWith(".json")) {
-      const parsed = JSON.parse(await readFile(file, "utf8"));
-      return {
-        source: rel,
-        questions: validateQuestions(code, rel, Array.isArray(parsed) ? parsed : parsed.questions),
-        titles: (Array.isArray(parsed) ? {} : (parsed.chapterTitles ?? {})) as Record<number, string>,
-      };
-    }
-    const mod = await import(pathToFileURL(file).href);
-    return { source: rel, questions: validateQuestions(code, rel, mod.questions), titles: {} as Record<number, string> };
+async function loadBank(code: string, dir: string, rel: string) {
+  const file = path.join(dir, rel);
+  if (rel.endsWith(".json")) {
+    const parsed = JSON.parse(await readFile(file, "utf8"));
+    return {
+      questions: validateQuestions(code, rel, Array.isArray(parsed) ? parsed : parsed.questions),
+      titles: (Array.isArray(parsed) ? {} : (parsed.chapterTitles ?? {})) as Record<number, string>,
+    };
   }
-  return { source: null, questions: [] as Question[], titles: {} as Record<number, string> };
+  const mod = await import(pathToFileURL(file).href);
+  return { questions: validateQuestions(code, rel, mod.questions), titles: {} as Record<number, string> };
+}
+
+async function loadQuestions(code: string, dir: string) {
+  const main = QUESTION_FILES.find((rel) => existsSync(path.join(dir, rel)));
+  const files = [main, LAB_QUESTION_FILE].filter((rel): rel is string => !!rel && existsSync(path.join(dir, rel)));
+  if (files.length === 0) return { source: null, questions: [] as Question[], titles: {} as Record<number, string> };
+  const banks = await Promise.all(files.map((rel) => loadBank(code, dir, rel)));
+  const questions = banks.flatMap((b) => b.questions);
+  const ids = new Set<string>();
+  for (const q of questions) {
+    if (ids.has(q.id)) fail(`${code} : id ${q.id} présent dans deux banques.`);
+    ids.add(q.id);
+  }
+  return {
+    source: files.join(", "),
+    questions,
+    titles: Object.assign({}, ...banks.map((b) => b.titles)) as Record<number, string>,
+  };
 }
 
 // Titre de module tiré du topic de synthèse de chaque module, intitulé "<titre du module> Summary".

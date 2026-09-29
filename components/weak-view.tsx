@@ -25,9 +25,9 @@ const LEVELS: { value: Level; label: string; ref: string }[] = [
 
 function Prompt({ question }: { question: Question }) {
   return (
-    <p lang="en" className="line-clamp-3">
+    <div lang="en" className="line-clamp-3">
       <RichText text={question.prompt} />
-    </p>
+    </div>
   );
 }
 
