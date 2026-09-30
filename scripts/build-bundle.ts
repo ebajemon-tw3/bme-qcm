@@ -16,7 +16,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const COURS_DIR = process.env.COURS_DIR ?? path.join(os.homedir(), "Documents", "erasmus", "cours");
 const OUT_JSON = path.join(ROOT, "public", "data.json");
 const OUT_PDF = path.join(ROOT, "public", "fiches");
-const SUBJECT_DIR = /^([A-Z0-9]+)_([a-z0-9-]+)$/;
+const SUBJECT_DIR = /^([A-Za-z0-9]+)_([a-z0-9-]+)$/;
 const QUESTION_FILES = ["exams/questions.ts", "exams/questions.json"];
 // Banques rédigées à la main (labs, annales), fusionnées avec la banque principale.
 const EXTRA_QUESTION_FILES = ["exams/questions-labs.json", "exams/questions-annales.json"];

@@ -37,6 +37,8 @@ export function QuestionTurn({
   live?: boolean;
 }) {
   const expected = correctIds(question);
+  // Lettres affichées : l'ordre des options peut être mélangé, l'id d'origine ne correspond plus.
+  const expectedLetters = question.choices.flatMap((c, i) => (c.correct ? [String.fromCharCode(97 + i)] : []));
   const right = isCorrect(question, selected);
   const promptId = `prompt-${question.id}`;
 
@@ -86,7 +88,7 @@ export function QuestionTurn({
           <GrokTool
             variant="card"
             tone={right ? "ok" : "bad"}
-            title={right ? "Juste" : `Faux, réponse attendue : ${expected.join(", ")}`}
+            title={right ? "Juste" : `Faux, réponse attendue : ${expectedLetters.join(", ")}`}
           >
             <div className="flex flex-col gap-2">
               <p lang="en" className="text-(--term-fg)">
