@@ -18,8 +18,8 @@ const OUT_JSON = path.join(ROOT, "public", "data.json");
 const OUT_PDF = path.join(ROOT, "public", "fiches");
 const SUBJECT_DIR = /^([A-Z0-9]+)_([a-z0-9-]+)$/;
 const QUESTION_FILES = ["exams/questions.ts", "exams/questions.json"];
-// Banque rédigée à la main à partir des labs, fusionnée avec la banque principale.
-const LAB_QUESTION_FILE = "exams/questions-labs.json";
+// Banques rédigées à la main (labs, annales), fusionnées avec la banque principale.
+const EXTRA_QUESTION_FILES = ["exams/questions-labs.json", "exams/questions-annales.json"];
 
 function fail(message: string): never {
   console.error(`Erreur : ${message}`);
@@ -72,7 +72,7 @@ async function loadBank(code: string, dir: string, rel: string) {
 
 async function loadQuestions(code: string, dir: string) {
   const main = QUESTION_FILES.find((rel) => existsSync(path.join(dir, rel)));
-  const files = [main, LAB_QUESTION_FILE].filter((rel): rel is string => !!rel && existsSync(path.join(dir, rel)));
+  const files = [main, ...EXTRA_QUESTION_FILES].filter((rel): rel is string => !!rel && existsSync(path.join(dir, rel)));
   if (files.length === 0) return { source: null, questions: [] as Question[], titles: {} as Record<number, string> };
   const banks = await Promise.all(files.map((rel) => loadBank(code, dir, rel)));
   const questions = banks.flatMap((b) => b.questions);
