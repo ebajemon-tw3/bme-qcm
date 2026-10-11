@@ -94,6 +94,7 @@ export function underlinedCount(text: string) {
 
 export function essaysToMarkdown(essays: Essay[]) {
   return essays
+    .filter((e) => e.text.trim())
     .map(
       (e, i) =>
         `## Essay ${i + 1}\n\n**Question.** ${e.prompt}\n\nWritten ${e.createdAt.slice(0, 16).replace("T", " ")}, ${wordCount(e.text)} words, ${underlinedCount(e.text)} underlined ideas.\n\n${e.text.trim()}\n`,
