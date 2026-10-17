@@ -133,11 +133,12 @@ async function loadSheets(dir: string): Promise<Sheet[]> {
 }
 
 // PDF de révision exams/pdf/*.pdf, copiés dans public/fiches/<code>/. Titre : \doctitle de la
-// source LaTeX exams/latex/<nom>.tex quand elle existe, sinon le nom du fichier.
+// source LaTeX exams/latex/<nom>.tex quand elle existe, sinon le nom du fichier. Les PDF dont le nom
+// contient « annales » recopient des sujets de vik.wiki : ils restent locaux, le site est public.
 async function loadPdfs(code: string, dir: string): Promise<PdfDoc[]> {
   const src = path.join(dir, "exams", "pdf");
   if (!existsSync(src)) return [];
-  const files = (await readdir(src)).filter((f) => f.endsWith(".pdf")).sort();
+  const files = (await readdir(src)).filter((f) => f.endsWith(".pdf") && !f.includes("annales")).sort();
   const out = path.join(OUT_PDF, code);
   await mkdir(out, { recursive: true });
   return Promise.all(
