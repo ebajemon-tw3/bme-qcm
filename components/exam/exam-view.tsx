@@ -72,11 +72,12 @@ function Practice({ prep, code }: { prep: ExamPrep; code: string }) {
 
 function Questions({ prep }: { prep: ExamPrep }) {
   const store = useExamStore();
+  const unit = prep.unitLabel ?? "séance";
   const [open, setOpen] = React.useState<Set<string>>(() => new Set());
   return (
     <div className="flex max-w-3xl flex-col gap-10">
       {prep.sessions.map((s) => (
-        <Section key={s.session} title={`Séance ${s.session} : ${s.title}`}>
+        <Section key={s.session} title={`${unit[0].toUpperCase()}${unit.slice(1)} ${s.session} : ${s.title}`}>
           {s.generators.length ? (
             <p className="text-xs text-muted-foreground">
               Exercices générés pour cette séance (onglet Exercices) : {s.generators.map((g) => GENERATORS[g].title).join(", ")}.
@@ -114,7 +115,10 @@ export function ExamView() {
   const store = useExamStore();
   const subjects = bundle.subjects.filter((s) => s.examPrep);
   const subject = subjects.find((s) => s.code === params.get("c")) ?? subjects[0];
-  const [tab, setTab] = React.useState(() => (subject && store.mock?.code === subject.code ? "blanc" : "exercices"));
+  const hasGenerators = !!subject?.examPrep?.sessions.some((s) => s.generators.length);
+  const [tab, setTab] = React.useState(() =>
+    subject && store.mock?.code === subject.code ? "blanc" : hasGenerators ? "exercices" : "questions",
+  );
 
   if (!subject) {
     return (
@@ -151,10 +155,12 @@ export function ExamView() {
         <p className="max-w-3xl text-sm">{prep.summary}</p>
       </div>
       <Tabs value={tab} onValueChange={setTab} className="flex-1 gap-6">
-        <TabsList className="grid h-11 w-full grid-cols-3 sm:h-9 sm:w-fit">
-          <TabsTrigger value="exercices" className="text-xs whitespace-normal sm:text-sm">
-            Exercices
-          </TabsTrigger>
+        <TabsList className={`grid h-11 w-full ${hasGenerators ? "grid-cols-3" : "grid-cols-2"} sm:h-9 sm:w-fit`}>
+          {hasGenerators ? (
+            <TabsTrigger value="exercices" className="text-xs whitespace-normal sm:text-sm">
+              Exercices
+            </TabsTrigger>
+          ) : null}
           <TabsTrigger value="questions" className="text-xs whitespace-normal sm:text-sm">
             Questions types
           </TabsTrigger>

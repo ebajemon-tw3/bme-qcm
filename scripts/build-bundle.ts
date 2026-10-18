@@ -167,6 +167,7 @@ async function loadExamPrep(dir: string): Promise<ExamPrep | undefined> {
   for (const key of ["title", "date", "summary"] as const) {
     if (typeof prep[key] !== "string" || !prep[key]) fail(`${rel} : champ ${key} manquant.`);
   }
+  if (prep.unitLabel !== undefined && (typeof prep.unitLabel !== "string" || !prep.unitLabel)) fail(`${rel} : unitLabel doit être un texte non vide.`);
   for (const key of ["questionCount", "pointsPerQuestion", "passMark"] as const) {
     if (!Number.isInteger(prep[key]) || prep[key] <= 0) fail(`${rel} : ${key} doit être un entier positif.`);
   }

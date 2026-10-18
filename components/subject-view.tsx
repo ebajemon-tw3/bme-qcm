@@ -105,8 +105,10 @@ export function SubjectView() {
         {subject.examPrep ? (
           <Section title="Révision d'exam">
             <p className="text-sm">
-              {subject.examPrep.title}, {subject.examPrep.date}. Exercices générés avec correction, questions types par
-              séance et sujet blanc noté sur {subject.examPrep.questionCount * subject.examPrep.pointsPerQuestion}.
+              {subject.examPrep.title}, {subject.examPrep.date}.{" "}
+              {subject.examPrep.sessions.some((s) => s.generators.length) ? "Exercices générés avec correction, questions" : "Questions"}{" "}
+              types par {subject.examPrep.unitLabel ?? "séance"} et sujet blanc noté sur{" "}
+              {subject.examPrep.questionCount * subject.examPrep.pointsPerQuestion}.
             </p>
             <div>
               <Button asChild size="lg" className="h-11">

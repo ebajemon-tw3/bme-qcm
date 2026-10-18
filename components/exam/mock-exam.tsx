@@ -76,14 +76,18 @@ export function MockExam({ prep, code }: { prep: ExamPrep; code: string }) {
   const questions = new Map(prep.sessions.flatMap((s) => s.questions.map((q) => [q.id, q] as const)));
   const sessions = new Map(prep.sessions.map((s) => [s.session, s]));
   const withGenerators = prep.sessions.filter((s) => s.generators.length).map((s) => s.session);
+  const unit = prep.unitLabel ?? "séance";
 
   if (!mock) {
     return (
       <div className="flex flex-col gap-10">
         <Section title="Nouveau sujet blanc">
           <p className="text-sm">
-            {prep.questionCount} questions sur {max} points, une par séance : un exercice généré pour les séances{" "}
-            {withGenerators.join(", ")}, une question ouverte tirée au hasard pour les autres. Corrigés et réponses modèles
+            {prep.questionCount} questions sur {max} points, une par {unit} :{" "}
+            {withGenerators.length
+              ? `un exercice généré pour les ${unit}s ${withGenerators.join(", ")}, une question ouverte tirée au hasard pour les autres.`
+              : "une question ouverte tirée au hasard."}{" "}
+            Corrigés et réponses modèles
             à la fin, puis une note sur {max} par question à se donner soi-même. Réussite à {prep.passMark}/{total}.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -150,7 +154,7 @@ export function MockExam({ prep, code }: { prep: ExamPrep; code: string }) {
       {mock.items.map((item, i) => {
         const session = sessions.get(item.session);
         const question = item.kind === "open" ? questions.get(item.questionId) : undefined;
-        const heading = `Question ${i + 1}, séance ${item.session} : ${item.kind === "generator" ? GENERATORS[item.generator].title : (question?.title ?? "")}`;
+        const heading = `Question ${i + 1}, ${unit} ${item.session} : ${item.kind === "generator" ? GENERATORS[item.generator].title : (question?.title ?? "")}`;
         const auto = item.kind === "generator" && mock.finished ? GENERATORS[item.generator].check(item.seed, mock.values[i] ?? {}) : null;
         return (
           <section key={i} aria-label={heading} className="flex flex-col gap-3 border-t pt-4">

@@ -93,6 +93,8 @@ export interface ExamPrep {
   title: string;
   date: string;
   summary: string;
+  // Nom d'une unité du sujet blanc, « séance » par défaut (« thème » quand l'examen suit des thèmes).
+  unitLabel?: string;
   questionCount: number;
   pointsPerQuestion: number;
   passMark: number;
