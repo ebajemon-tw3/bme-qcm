@@ -61,6 +61,44 @@ export interface PdfDoc {
   kb: number;
 }
 
+// Générateurs d'exercices codés dans lib/exam-*.ts, cités par exams/exam-prep.json.
+export const GENERATOR_IDS = ["xml", "ipv4", "lpm", "dijkstra"] as const;
+export type GeneratorId = (typeof GENERATOR_IDS)[number];
+
+export interface ExamPoint {
+  text: string;
+  points: number;
+}
+
+// Question ouverte type : énoncé et réponse modèle dans la langue du cours.
+export interface ExamQuestion {
+  id: string;
+  title: string;
+  prompt: string;
+  answer: string[];
+  table?: MdTable;
+  points: ExamPoint[];
+  refs: string[];
+}
+
+export interface ExamSession {
+  session: number;
+  title: string;
+  generators: GeneratorId[];
+  questions: ExamQuestion[];
+}
+
+// exams/exam-prep.json : révision d'un examen à questions ouvertes.
+export interface ExamPrep {
+  title: string;
+  date: string;
+  summary: string;
+  questionCount: number;
+  pointsPerQuestion: number;
+  passMark: number;
+  sessions: ExamSession[];
+}
+
 export interface Subject {
   code: string;
   slug: string;
@@ -76,6 +114,7 @@ export interface Subject {
   questionSource: string | null;
   sheets?: Sheet[];
   pdfs?: PdfDoc[];
+  examPrep?: ExamPrep;
 }
 
 export interface Deadline {

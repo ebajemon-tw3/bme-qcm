@@ -9,7 +9,8 @@ import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { Bundle, Deadline, PdfDoc, Question, SessionBlock, Sheet, Stay, Subject, UndatedDeadline } from "../lib/types";
+import { GENERATOR_IDS } from "../lib/types";
+import type { Bundle, Deadline, ExamPrep, PdfDoc, Question, SessionBlock, Sheet, Stay, Subject, UndatedDeadline } from "../lib/types";
 import { findSection, firstTable, parseChapterList, parseDoc, stripMarkdown } from "./markdown";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -153,6 +154,56 @@ async function loadPdfs(code: string, dir: string): Promise<PdfDoc[]> {
   );
 }
 
+// Révision d'exam exams/exam-prep.json : questions ouvertes par séance et générateurs d'exercices.
+// Le fichier est refusé s'il est incohérent ou s'il contient un tiret cadratin ou demi-cadratin.
+async function loadExamPrep(dir: string): Promise<ExamPrep | undefined> {
+  const rel = "exams/exam-prep.json";
+  const file = path.join(dir, rel);
+  if (!existsSync(file)) return undefined;
+  const text = await readFile(file, "utf8");
+  const dash = text.search(/[\u2013\u2014]/);
+  if (dash !== -1) fail(`${rel}, ligne ${text.slice(0, dash).split("\n").length} : tiret cadratin ou demi-cadratin.`);
+  const prep = JSON.parse(text) as ExamPrep;
+  for (const key of ["title", "date", "summary"] as const) {
+    if (typeof prep[key] !== "string" || !prep[key]) fail(`${rel} : champ ${key} manquant.`);
+  }
+  for (const key of ["questionCount", "pointsPerQuestion", "passMark"] as const) {
+    if (!Number.isInteger(prep[key]) || prep[key] <= 0) fail(`${rel} : ${key} doit être un entier positif.`);
+  }
+  if (!Array.isArray(prep.sessions) || prep.sessions.length !== prep.questionCount) {
+    fail(`${rel} : une séance par question attendue (${prep.questionCount}).`);
+  }
+  const ids = new Set<string>();
+  for (const s of prep.sessions) {
+    const where = `${rel}, séance ${s.session}`;
+    if (!Number.isInteger(s.session) || typeof s.title !== "string") fail(`${where} : session ou title manquant.`);
+    if (!Array.isArray(s.generators) || s.generators.some((g) => !(GENERATOR_IDS as readonly string[]).includes(g))) {
+      fail(`${where} : générateur inconnu (connus : ${GENERATOR_IDS.join(", ")}).`);
+    }
+    if (!Array.isArray(s.questions)) fail(`${where} : questions doit être un tableau.`);
+    if (s.generators.length === 0 && s.questions.length === 0) fail(`${where} : ni générateur ni question.`);
+    for (const q of s.questions) {
+      const at = `${where}, question ${q.id ?? "?"}`;
+      if (typeof q.id !== "string" || !q.id) fail(`${where} : id de question manquant.`);
+      if (ids.has(q.id)) fail(`${at} : id en double.`);
+      ids.add(q.id);
+      for (const key of ["title", "prompt"] as const) {
+        if (typeof q[key] !== "string" || !q[key]) fail(`${at} : champ ${key} manquant.`);
+      }
+      for (const key of ["answer", "refs"] as const) {
+        if (!Array.isArray(q[key]) || q[key].length === 0) fail(`${at} : ${key} doit être un tableau non vide.`);
+      }
+      if (!Array.isArray(q.points) || q.points.length === 0) fail(`${at} : points attendus manquants.`);
+      const total = q.points.reduce((sum, p) => sum + p.points, 0);
+      if (Math.abs(total - prep.pointsPerQuestion) > 1e-9) fail(`${at} : barème de ${total} points au lieu de ${prep.pointsPerQuestion}.`);
+      if (q.table && (!Array.isArray(q.table.headers) || q.table.rows.some((r) => r.length !== q.table!.headers.length))) {
+        fail(`${at} : tableau mal formé.`);
+      }
+    }
+  }
+  return prep;
+}
+
 async function loadSubject(entry: string): Promise<{ subject: Subject; questions: Question[] }> {
   const [, code, slug] = entry.match(SUBJECT_DIR)!;
   const dir = path.join(COURS_DIR, entry);
@@ -182,6 +233,7 @@ async function loadSubject(entry: string): Promise<{ subject: Subject; questions
       questionSource: source,
       sheets: await loadSheets(dir),
       pdfs: await loadPdfs(code, dir),
+      examPrep: await loadExamPrep(dir),
     },
     questions,
   };
@@ -277,7 +329,8 @@ async function main() {
   console.log(`Dépôt lu : ${COURS_DIR}`);
   for (const s of subjects) {
     const n = questions[s.code]?.length ?? 0;
-    console.log(`  ${s.code.padEnd(15)} ${String(n).padStart(4)} questions  ${s.blocks.length} blocs de séance  ${s.sheets?.length ?? 0} fiches  ${s.pdfs?.length ?? 0} PDF`);
+    const prep = s.examPrep ? `  révision d'exam : ${s.examPrep.sessions.reduce((sum, x) => sum + x.questions.length, 0)} questions ouvertes` : "";
+    console.log(`  ${s.code.padEnd(15)} ${String(n).padStart(4)} questions  ${s.blocks.length} blocs de séance  ${s.sheets?.length ?? 0} fiches  ${s.pdfs?.length ?? 0} PDF${prep}`);
   }
   console.log(`Échéances : ${dated.length} datées, ${undated.length} non datées`);
   console.log(`Séjour : ${stay ? `${stay.start} au ${stay.end}` : "section absente de calendrier.md"}`);

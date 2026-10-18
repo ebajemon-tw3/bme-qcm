@@ -102,6 +102,20 @@ export function SubjectView() {
           ) : null}
         </Section>
 
+        {subject.examPrep ? (
+          <Section title="Révision d'exam">
+            <p className="text-sm">
+              {subject.examPrep.title}, {subject.examPrep.date}. Exercices générés avec correction, questions types par
+              séance et sujet blanc noté sur {subject.examPrep.questionCount * subject.examPrep.pointsPerQuestion}.
+            </p>
+            <div>
+              <Button asChild size="lg" className="h-11">
+                <Link href={`/exam?c=${subject.code}`}>Ouvrir la révision d&apos;exam</Link>
+              </Button>
+            </div>
+          </Section>
+        ) : null}
+
         {subject.planning ? (
           <Section title="Planning des séances">
             <details>

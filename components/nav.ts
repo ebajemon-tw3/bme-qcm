@@ -5,6 +5,7 @@ export const PAGES = [
   { href: "/historique", title: "Historique" },
   { href: "/points-faibles", title: "Points faibles" },
   { href: "/essais", title: "Essais Ethics" },
+  { href: "/exam", title: "Révision d'exam" },
 ] as const;
 
 export const TITLES: Record<string, string> = {
@@ -18,6 +19,7 @@ export const TITLES: Record<string, string> = {
   "/fiche": "Fiche de révision",
   "/reglages": "Réglages",
   "/essais": "Essais Ethics",
+  "/exam": "Révision d'exam",
 };
 
 // usePathname renvoie le chemin sans basePath ; trailingSlash ajoute une barre finale.
