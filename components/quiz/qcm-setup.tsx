@@ -24,7 +24,7 @@ import type { RunState } from "@/lib/run-store";
 import { blockLabel, nextBlock, resolveScope, SCOPE_PARAM, SCOPE_TITLE } from "@/lib/scope";
 import { forSubject, questionTracks } from "@/lib/stats";
 
-const COUNTS = [10, 20, 40];
+const COUNTS = [5, 10, 20, 40];
 
 export function QcmSetup({
   params,
@@ -66,9 +66,9 @@ export function QcmSetup({
     () => params.get("d") ?? (subject ? nextBlock(subject, today)?.date : undefined),
   );
   const [stillWrongOnly, setStillWrongOnly] = React.useState(false);
-  const [mode, setMode] = React.useState<Mode>("training");
+  const [mode, setMode] = React.useState<Mode>(() => (params.get("m") === "examen" ? "exam" : "training"));
   const [order, setOrder] = React.useState<Order>("random");
-  const [count, setCount] = React.useState("20");
+  const [count, setCount] = React.useState(() => params.get("n") ?? "20");
 
   if (!subject) {
     return (
@@ -305,7 +305,7 @@ export function QcmSetup({
             type="single"
             variant="outline"
             spacing={1}
-            className="grid w-full grid-cols-4"
+            className={`grid w-full ${counts.length > 3 ? "grid-cols-5" : "grid-cols-4"}`}
             value={counts.includes(Number(count)) ? count : "all"}
             onValueChange={(value) => value && setCount(value)}
           >
