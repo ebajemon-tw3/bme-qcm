@@ -3,9 +3,10 @@ import { dayTime, duration, percent, seconds } from "@/lib/format";
 import type { SessionRecord } from "@/lib/history";
 import { MODE_LABEL } from "@/lib/quiz";
 import { groupAnswers, sessionScore, successRate, tally } from "@/lib/stats";
-import type { Subject } from "@/lib/types";
+import { mockScore } from "@/lib/scoring";
+import type { Question, Subject } from "@/lib/types";
 
-export function SessionSummary({ session, subject }: { session: SessionRecord; subject?: Subject }) {
+export function SessionSummary({ session, subject, bank }: { session: SessionRecord; subject?: Subject; bank?: Question[] }) {
   const correct = session.answers.filter((a) => a.correct).length;
   const n = session.answers.length;
   const rows: [string, string][] = [
@@ -17,6 +18,14 @@ export function SessionSummary({ session, subject }: { session: SessionRecord; s
     ["Durée", duration(session.durationMs)],
     ["Temps moyen par question", n ? seconds(session.durationMs / n) : "-"],
   ];
+  const mock = subject?.mocks?.find((m) => m.id === session.scope.mockId);
+  if (mock?.penalty && bank) {
+    const s = mockScore(session.answers, bank, mock);
+    rows.unshift([
+      "Barème réel",
+      `${s.points} points sur ${s.base}${s.bonus ? `, dont ${s.bonusPoints} sur les ${s.bonus} bonus` : ""}, ${s.tfWrong} vrai/faux faux (-${s.tfWrong}), ${s.skipped} sans réponse`,
+    ]);
+  }
   const chapters = [...groupAnswers(session.answers, "chapter")].sort((a, b) => Number(a[0]) - Number(b[0]));
 
   return (

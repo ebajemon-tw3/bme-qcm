@@ -61,6 +61,8 @@ export function QcmRunner({
   const validated = questions.filter((q) => run.answers[q.id]?.validated);
   const correctCount = validated.filter((q) => isCorrect(q, run.answers[q.id].selected)).length;
   const flaggedCount = questions.filter((q) => flags.has(q.id)).length;
+  const mock = subject.mocks?.find((m) => m.id === run.scope.mockId);
+  const bonusFrom = questions.length - (mock?.bonus ?? 0);
 
   React.useEffect(() => storeRun(run), [run]);
 
@@ -206,6 +208,7 @@ export function QcmRunner({
             <>
               <span>
                 {run.index + 1}/{questions.length}
+                {run.index >= bonusFrom ? " bonus" : ""}
               </span>
               <span aria-hidden>│</span>
               <span>
@@ -274,6 +277,11 @@ export function QcmRunner({
             Précédente
           </Button>
         ) : null}
+        {exam && answer.selected.length > 0 ? (
+          <Button variant="ghost" size="lg" className="h-11" onClick={() => select([])}>
+            Effacer
+          </Button>
+        ) : null}
         <Button
           variant="outline"
           size="lg"
@@ -299,9 +307,11 @@ export function QcmRunner({
             <AlertDialogTitle>Remettre la copie ?</AlertDialogTitle>
             <AlertDialogDescription>
               {questions.length - answeredCount > 0
-                ? questions.length - answeredCount > 1
-                  ? `${questions.length - answeredCount} questions sans réponse seront comptées fausses.`
-                  : "1 question sans réponse sera comptée fausse."
+                ? mock?.penalty
+                  ? `${plural(questions.length - answeredCount, "question")} sans réponse : 0 point, sans pénalité.`
+                  : questions.length - answeredCount > 1
+                    ? `${questions.length - answeredCount} questions sans réponse seront comptées fausses.`
+                    : "1 question sans réponse sera comptée fausse."
                 : "Toutes les questions ont une réponse."}
               {flaggedCount > 1 ? ` ${flaggedCount} questions sont marquées pour y revenir.` : ""}
               {flaggedCount === 1 ? " 1 question est marquée pour y revenir." : ""}

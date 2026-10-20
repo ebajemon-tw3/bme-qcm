@@ -15,7 +15,7 @@ export interface RunState {
   subject: string;
   mode: Mode;
   order: Order;
-  scope: { kind: ScopeKind; label: string };
+  scope: { kind: ScopeKind; label: string; mockId?: string };
   questionIds: string[];
   index: number;
   answers: Record<string, RunAnswer>;

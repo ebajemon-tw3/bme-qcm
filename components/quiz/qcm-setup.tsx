@@ -21,6 +21,7 @@ import { chapterRange, isoDay } from "@/lib/format";
 import { useHistory } from "@/lib/history";
 import { MODE_LABEL, newId, pickQuestions, type Mode, type Order, type ScopeKind } from "@/lib/quiz";
 import type { RunState } from "@/lib/run-store";
+import { isTrueFalse } from "@/lib/scoring";
 import { blockLabel, nextBlock, resolveScope, SCOPE_PARAM, SCOPE_TITLE } from "@/lib/scope";
 import { forSubject, questionTracks } from "@/lib/stats";
 
@@ -104,7 +105,10 @@ export function QcmSetup({
     bank,
     history,
   );
-  const counts = COUNTS.filter((n) => n < pool.length);
+  const activeMock = scope === "mock" ? (subject.mocks?.find((m) => m.id === mockId) ?? subject.mocks?.[0]) : undefined;
+  const counts = [...new Set([...COUNTS, ...(activeMock ? [activeMock.count] : [])])]
+    .sort((a, b) => a - b)
+    .filter((n) => n < pool.length);
   const effective = count === "all" || Number(count) >= pool.length ? pool.length : Number(count);
   const emptyReason = {
     chapters: "Choisir au moins un chapitre.",
@@ -130,13 +134,15 @@ export function QcmSetup({
   function start(event: React.FormEvent) {
     event.preventDefault();
     if (pool.length === 0) return;
-    const picked = pickQuestions(pool, order, effective);
+    let picked = pickQuestions(pool, order, effective);
+    // Midterm à points négatifs : les vrai/faux d'abord, les QCM à la fin, comme le sujet réel.
+    if (activeMock?.penalty) picked = [...picked.filter(isTrueFalse), ...picked.filter((q) => !isTrueFalse(q))];
     onStart({
       id: newId(),
       subject: code,
       mode,
       order,
-      scope: { kind: scope, label },
+      scope: { kind: scope, label, ...(activeMock ? { mockId: activeMock.id } : {}) },
       questionIds: picked.map((q) => q.id),
       index: 0,
       answers: {},
@@ -337,7 +343,7 @@ export function QcmSetup({
             type="single"
             variant="outline"
             spacing={1}
-            className={`grid w-full ${counts.length > 3 ? "grid-cols-5" : "grid-cols-4"}`}
+            className={`grid w-full ${counts.length > 4 ? "grid-cols-6" : counts.length > 3 ? "grid-cols-5" : "grid-cols-4"}`}
             value={counts.includes(Number(count)) ? count : "all"}
             onValueChange={(value) => value && setCount(value)}
           >

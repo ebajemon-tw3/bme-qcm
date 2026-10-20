@@ -21,7 +21,7 @@ export interface SessionRecord {
   subject: string;
   mode: Mode;
   order: Order;
-  scope: { kind: ScopeKind; label: string };
+  scope: { kind: ScopeKind; label: string; mockId?: string };
   startedAt: string;
   endedAt: string;
   durationMs: number;

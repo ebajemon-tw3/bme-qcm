@@ -220,6 +220,10 @@ async function loadMocks(dir: string, questions: Question[]): Promise<MockExam[]
       if (typeof m[key] !== "string" || !m[key]) fail(`${rel} : champ ${key} manquant.`);
     }
     if (!Number.isInteger(m.count) || m.count <= 0) fail(`${rel}, ${m.id} : count doit être un entier positif.`);
+    if (m.penalty !== undefined && typeof m.penalty !== "boolean") fail(`${rel}, ${m.id} : penalty doit être un booléen.`);
+    if (m.bonus !== undefined && (!Number.isInteger(m.bonus) || m.bonus < 0 || m.bonus >= m.count)) {
+      fail(`${rel}, ${m.id} : bonus doit être un entier entre 0 et count - 1.`);
+    }
     const missing = m.ids.filter((id) => !known.has(id));
     if (missing.length) fail(`${rel}, ${m.id} : questions absentes de la banque : ${missing.join(", ")}.`);
   }

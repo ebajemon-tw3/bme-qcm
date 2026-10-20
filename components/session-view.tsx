@@ -35,7 +35,7 @@ export function SessionView() {
       <PageHeader title={`Session du ${dayTime(session.endedAt)}`}>
         {subject ? `${subject.sigle ?? subject.code}, ${subject.title}` : session.subject}
       </PageHeader>
-      <SessionSummary session={session} subject={subject} />
+      <SessionSummary session={session} subject={subject} bank={bundle.questions[session.subject]} />
       {wrong ? (
         <Button asChild size="lg" className="h-11 w-full sm:w-fit">
           <Link href={`/qcm?c=${session.subject}&p=session&s=${session.id}`}>{wrong > 1 ? `Refaire les ${wrong} erreurs` : "Refaire l'erreur"}</Link>

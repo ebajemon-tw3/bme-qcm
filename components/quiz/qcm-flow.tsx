@@ -68,7 +68,7 @@ export function QcmFlow() {
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
         <PageHeader title="Session terminée">Enregistrée dans l&apos;historique de ce navigateur.</PageHeader>
-        <SessionSummary session={result} subject={subject} />
+        <SessionSummary session={result} subject={subject} bank={bundle.questions[result.subject]} />
         <div className="flex flex-wrap gap-2">
           {wrong.length ? (
             <Button

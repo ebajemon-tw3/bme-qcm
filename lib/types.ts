@@ -109,6 +109,10 @@ export interface MockExam {
   summary: string;
   count: number;
   ids: string[];
+  /** Barème à points négatifs : vrai/faux +1, -1 si faux, 0 sans réponse ; autres questions +1 ou 0. */
+  penalty?: boolean;
+  /** Les `bonus` dernières questions du sujet sont des bonus, hors du total de base. */
+  bonus?: number;
 }
 
 export interface Subject {
