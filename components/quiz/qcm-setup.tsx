@@ -65,6 +65,9 @@ export function QcmSetup({
   const [blockDate, setBlockDate] = React.useState(
     () => params.get("d") ?? (subject ? nextBlock(subject, today)?.date : undefined),
   );
+  const [mockId, setMockId] = React.useState(
+    () => params.get("e") ?? (subject?.mocks?.find((m) => m.date >= today) ?? subject?.mocks?.[0])?.id,
+  );
   const [stillWrongOnly, setStillWrongOnly] = React.useState(false);
   const [mode, setMode] = React.useState<Mode>(() => (params.get("m") === "examen" ? "exam" : "training"));
   const [order, setOrder] = React.useState<Order>("random");
@@ -88,6 +91,7 @@ export function QcmSetup({
   const kinds: ScopeKind[] = [
     "chapters",
     ...(subject.blocks.length ? (["block"] as const) : []),
+    ...(subject.mocks?.length ? (["mock"] as const) : []),
     "missed",
     "flagged",
     ...(sessionId ? (["session"] as const) : []),
@@ -95,7 +99,7 @@ export function QcmSetup({
 
   const scope = kinds.includes(kind) ? kind : kinds[0];
   const { pool, label } = resolveScope(
-    { kind: scope, chapters, blockDate, stillWrongOnly, sessionId },
+    { kind: scope, chapters, blockDate, mockId, stillWrongOnly, sessionId },
     subject,
     bank,
     history,
@@ -105,6 +109,7 @@ export function QcmSetup({
   const emptyReason = {
     chapters: "Choisir au moins un chapitre.",
     block: "Aucune séance du planning n'a de chapitres.",
+    mock: "Aucun sujet blanc pour cette matière.",
     missed: "Aucune question ratée sur cette matière pour l'instant.",
     flagged: "Aucune question marquée sur cette matière.",
     session: "Cette session n'a pas d'erreur à refaire.",
@@ -116,7 +121,8 @@ export function QcmSetup({
     setCode(next);
     setChapters([]);
     setBlockDate(nextBlock(target, today)?.date);
-    if ((kind === "block" && !target.blocks.length) || kind === "session") {
+    setMockId((target.mocks?.find((m) => m.date >= today) ?? target.mocks?.[0])?.id);
+    if ((kind === "block" && !target.blocks.length) || (kind === "mock" && !target.mocks?.length) || kind === "session") {
       setKind(target.blocks.length ? "block" : "chapters");
     }
   }
@@ -185,9 +191,18 @@ export function QcmSetup({
             type="single"
             variant="outline"
             spacing={1}
-            className="grid w-full grid-cols-2 sm:grid-cols-4"
+            className="grid w-full grid-cols-2 sm:grid-cols-3"
             value={scope}
-            onValueChange={(value) => value && setKind(value as ScopeKind)}
+            onValueChange={(value) => {
+              if (!value) return;
+              setKind(value as ScopeKind);
+              // Un sujet blanc se passe comme le vrai : sans correction, au nombre de questions du test.
+              const mock = subject.mocks?.find((m) => m.id === mockId);
+              if (value === "mock" && mock) {
+                setMode("exam");
+                setCount(String(mock.count));
+              }
+            }}
           >
             {kinds.map((k) => (
               <ToggleGroupItem key={k} value={k} className="h-11 sm:h-9">
@@ -259,6 +274,23 @@ export function QcmSetup({
                 ))}
               </NativeSelect>
               <FieldDescription>Chapitres à préparer pour la séance, lus dans le planning de la matière.</FieldDescription>
+            </Field>
+          ) : null}
+
+          {scope === "mock" ? (
+            <Field>
+              {(subject.mocks?.length ?? 0) > 1 ? (
+                <NativeSelect id="mock" className="w-full" value={mockId ?? ""} onChange={(e) => setMockId(e.target.value)}>
+                  {subject.mocks!.map((m) => (
+                    <NativeSelectOption key={m.id} value={m.id}>
+                      {m.date}, {m.title}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              ) : null}
+              <FieldDescription>
+                {subject.mocks?.find((m) => m.id === mockId)?.summary ?? subject.mocks?.[0]?.summary}
+              </FieldDescription>
             </Field>
           ) : null}
 

@@ -8,6 +8,7 @@ import type { Question, SessionBlock, Subject } from "@/lib/types";
 export const SCOPE_PARAM: Record<string, ScopeKind> = {
   chapitres: "chapters",
   seance: "block",
+  blanc: "mock",
   ratees: "missed",
   marquees: "flagged",
   session: "session",
@@ -16,6 +17,7 @@ export const SCOPE_PARAM: Record<string, ScopeKind> = {
 export const SCOPE_TITLE: Record<ScopeKind, string> = {
   chapters: "Chapitres",
   block: "Séance",
+  mock: "Sujet blanc",
   missed: "Ratées",
   flagged: "Marquées",
   session: "Session",
@@ -34,6 +36,7 @@ export interface ScopeInput {
   kind: ScopeKind;
   chapters: number[];
   blockDate?: string;
+  mockId?: string;
   stillWrongOnly: boolean;
   sessionId?: string;
 }
@@ -55,6 +58,12 @@ export function resolveScope(
       return block
         ? { pool: bank.filter((q) => block.chapters.includes(q.chapter)), label: blockLabel(block) }
         : { pool: [], label: "Séance" };
+    }
+    case "mock": {
+      const mock = subject.mocks?.find((m) => m.id === input.mockId) ?? subject.mocks?.[0];
+      if (!mock) return { pool: [], label: "Sujet blanc" };
+      const ids = new Set(mock.ids);
+      return { pool: bank.filter((q) => ids.has(q.id)), label: `Sujet blanc, ${mock.title}` };
     }
     case "missed": {
       const tracks = questionTracks(forSubject(history.sessions, subject.code));

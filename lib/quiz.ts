@@ -2,7 +2,7 @@ import type { Question } from "@/lib/types";
 
 export type Mode = "training" | "exam";
 export type Order = "sequential" | "random";
-export type ScopeKind = "chapters" | "block" | "missed" | "flagged" | "session";
+export type ScopeKind = "chapters" | "block" | "mock" | "missed" | "flagged" | "session";
 
 export const MODE_LABEL: Record<Mode, string> = {
   training: "Entraînement",

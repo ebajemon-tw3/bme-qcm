@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { GENERATOR_IDS } from "../lib/types";
-import type { Bundle, Deadline, ExamPrep, PdfDoc, Question, SessionBlock, Sheet, Stay, Subject, UndatedDeadline } from "../lib/types";
+import type { Bundle, Deadline, ExamPrep, MockExam, PdfDoc, Question, SessionBlock, Sheet, Stay, Subject, UndatedDeadline } from "../lib/types";
 import { findSection, firstTable, parseChapterList, parseDoc, stripMarkdown } from "./markdown";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -205,6 +205,27 @@ async function loadExamPrep(dir: string): Promise<ExamPrep | undefined> {
   return prep;
 }
 
+// Sujets blancs exams/examen-blanc.json : chaque id doit exister dans la banque de la matière.
+async function loadMocks(dir: string, questions: Question[]): Promise<MockExam[] | undefined> {
+  const rel = "exams/examen-blanc.json";
+  const file = path.join(dir, rel);
+  if (!existsSync(file)) return undefined;
+  const text = await readFile(file, "utf8");
+  const dash = text.search(/[\u2013\u2014]/);
+  if (dash !== -1) fail(`${rel}, ligne ${text.slice(0, dash).split("\n").length} : tiret cadratin ou demi-cadratin.`);
+  const { mocks } = JSON.parse(text) as { mocks: MockExam[] };
+  const known = new Set(questions.map((q) => q.id));
+  for (const m of mocks) {
+    for (const key of ["id", "date", "title", "summary"] as const) {
+      if (typeof m[key] !== "string" || !m[key]) fail(`${rel} : champ ${key} manquant.`);
+    }
+    if (!Number.isInteger(m.count) || m.count <= 0) fail(`${rel}, ${m.id} : count doit être un entier positif.`);
+    const missing = m.ids.filter((id) => !known.has(id));
+    if (missing.length) fail(`${rel}, ${m.id} : questions absentes de la banque : ${missing.join(", ")}.`);
+  }
+  return mocks;
+}
+
 async function loadSubject(entry: string): Promise<{ subject: Subject; questions: Question[] }> {
   const [, code, slug] = entry.match(SUBJECT_DIR)!;
   const dir = path.join(COURS_DIR, entry);
@@ -235,6 +256,7 @@ async function loadSubject(entry: string): Promise<{ subject: Subject; questions
       sheets: await loadSheets(dir),
       pdfs: await loadPdfs(code, dir),
       examPrep: await loadExamPrep(dir),
+      mocks: await loadMocks(dir, questions),
     },
     questions,
   };

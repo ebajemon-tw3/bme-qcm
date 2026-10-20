@@ -101,6 +101,16 @@ export interface ExamPrep {
   sessions: ExamSession[];
 }
 
+// exams/examen-blanc.json : sujets blancs tirés au sort dans une liste fermée de questions de la banque.
+export interface MockExam {
+  id: string;
+  date: string;
+  title: string;
+  summary: string;
+  count: number;
+  ids: string[];
+}
+
 export interface Subject {
   code: string;
   slug: string;
@@ -117,6 +127,7 @@ export interface Subject {
   sheets?: Sheet[];
   pdfs?: PdfDoc[];
   examPrep?: ExamPrep;
+  mocks?: MockExam[];
 }
 
 export interface Deadline {
