@@ -194,9 +194,9 @@ async function loadExamPrep(dir: string): Promise<ExamPrep | undefined> {
       for (const key of ["answer", "refs"] as const) {
         if (!Array.isArray(q[key]) || q[key].length === 0) fail(`${at} : ${key} doit être un tableau non vide.`);
       }
-      if (!Array.isArray(q.points) || q.points.length === 0) fail(`${at} : points attendus manquants.`);
+      if (!Array.isArray(q.points)) fail(`${at} : points doit être un tableau, vide si pas de barème.`);
       const total = q.points.reduce((sum, p) => sum + p.points, 0);
-      if (Math.abs(total - prep.pointsPerQuestion) > 1e-9) fail(`${at} : barème de ${total} points au lieu de ${prep.pointsPerQuestion}.`);
+      if (q.points.length && Math.abs(total - prep.pointsPerQuestion) > 1e-9) fail(`${at} : barème de ${total} points au lieu de ${prep.pointsPerQuestion}.`);
       if (q.table && (!Array.isArray(q.table.headers) || q.table.rows.some((r) => r.length !== q.table!.headers.length))) {
         fail(`${at} : tableau mal formé.`);
       }

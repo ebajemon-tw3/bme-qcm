@@ -22,16 +22,20 @@ export function ModelAnswer({ question }: { question: ExamQuestion }) {
         ))}
       </div>
       {question.table ? <MdTable table={question.table} caption={`Tableau de la réponse : ${question.title}`} /> : null}
-      <h4 className="text-sm font-semibold">Points attendus</h4>
-      <p className="text-xs text-muted-foreground">Barème proposé pour s&apos;auto-noter, pas celui de l&apos;enseignant.</p>
-      <ul lang="en" className="flex flex-col gap-1">
-        {question.points.map((p, i) => (
-          <li key={i} className="flex items-baseline justify-between gap-4">
-            <span>{p.text}</span>
-            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{pts(p.points)}</span>
-          </li>
-        ))}
-      </ul>
+      {question.points.length ? (
+        <>
+          <h4 className="text-sm font-semibold">Points attendus</h4>
+          <p className="text-xs text-muted-foreground">Barème proposé pour s&apos;auto-noter, pas celui de l&apos;enseignant.</p>
+          <ul lang="en" className="flex flex-col gap-1">
+            {question.points.map((p, i) => (
+              <li key={i} className="flex items-baseline justify-between gap-4">
+                <span>{p.text}</span>
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{pts(p.points)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       <p className="text-xs text-muted-foreground">Sources : {question.refs.join(" ; ")}.</p>
     </div>
   );
