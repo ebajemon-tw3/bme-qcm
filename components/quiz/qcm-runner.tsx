@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { setFlag, useHistory, type AnswerRecord, type SessionRecord } from "@/lib/history";
 import { plural } from "@/lib/format";
 import { isCorrect, MODE_LABEL } from "@/lib/quiz";
+import { isTrueFalse } from "@/lib/scoring";
 import { storeRun, type RunAnswer, type RunState } from "@/lib/run-store";
 import type { Question, Subject } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -62,7 +63,23 @@ export function QcmRunner({
   const correctCount = validated.filter((q) => isCorrect(q, run.answers[q.id].selected)).length;
   const flaggedCount = questions.filter((q) => flags.has(q.id)).length;
   const mock = subject.mocks?.find((m) => m.id === run.scope.mockId);
-  const bonusFrom = questions.length - (mock?.bonus ?? 0);
+  const bonusCount = mock?.bonus ?? 0;
+  // Barème réel en direct (entraînement) : vrai/faux faux -1, sans réponse 0, et série de bonnes réponses.
+  let livePoints = 0;
+  let streak = 0;
+  for (const q of questions) {
+    const a = run.answers[q.id];
+    if (!a?.validated) continue;
+    if (a.selected.length === 0) {
+      streak = 0;
+    } else if (isCorrect(q, a.selected)) {
+      livePoints += 1;
+      streak += 1;
+    } else {
+      if (isTrueFalse(q)) livePoints -= 1;
+      streak = 0;
+    }
+  }
 
   React.useEffect(() => storeRun(run), [run]);
 
@@ -113,6 +130,22 @@ export function QcmRunner({
       const next = credit(r, ms);
       const current = next.answers[question.id] ?? EMPTY;
       return { ...next, answers: { ...next.answers, [question.id]: { ...current, validated: true } } };
+    });
+  }
+
+  // Ne pas répondre : 0 point au barème. En entraînement, la correction s'affiche ensuite.
+  function skip() {
+    if (exam) {
+      select([]);
+      if (last) setDialog("finish");
+      else goTo(run.index + 1);
+      return;
+    }
+    if (answer.validated) return;
+    const ms = flush();
+    setRun((r) => {
+      const next = credit(r, ms);
+      return { ...next, answers: { ...next.answers, [question.id]: { selected: [], validated: true, skipped: true, timeMs: (next.answers[question.id] ?? EMPTY).timeMs } } };
     });
   }
 
@@ -208,12 +241,20 @@ export function QcmRunner({
             <>
               <span>
                 {run.index + 1}/{questions.length}
-                {run.index >= bonusFrom ? " bonus" : ""}
+                {run.index < bonusCount ? " bonus" : ""}
               </span>
               <span aria-hidden>│</span>
               <span>
                 {exam ? plural(answeredCount, "répondue") : `${plural(correctCount, "juste")} sur ${validated.length}`}
               </span>
+              {mock?.penalty && !exam ? (
+                <>
+                  <span aria-hidden>│</span>
+                  <span>
+                    {livePoints} pt{Math.abs(livePoints) > 1 ? "s" : ""} au barème, série {streak}
+                  </span>
+                </>
+              ) : null}
             </>
           }
         />
@@ -277,7 +318,11 @@ export function QcmRunner({
             Précédente
           </Button>
         ) : null}
-        {exam && answer.selected.length > 0 ? (
+        {mock?.penalty && (exam || !answer.validated) ? (
+          <Button variant="ghost" size="lg" className="h-11" onClick={skip}>
+            Ne pas répondre
+          </Button>
+        ) : exam && answer.selected.length > 0 ? (
           <Button variant="ghost" size="lg" className="h-11" onClick={() => select([])}>
             Effacer
           </Button>

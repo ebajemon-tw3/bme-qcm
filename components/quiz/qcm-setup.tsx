@@ -135,8 +135,13 @@ export function QcmSetup({
     event.preventDefault();
     if (pool.length === 0) return;
     let picked = pickQuestions(pool, order, effective);
-    // Midterm à points négatifs : les vrai/faux d'abord, les QCM à la fin, comme le sujet réel.
-    if (activeMock?.penalty) picked = [...picked.filter(isTrueFalse), ...picked.filter((q) => !isTrueFalse(q))];
+    // Midterm à points négatifs : les bonus d'abord, puis le sujet ; dans chaque bloc, les vrai/faux
+    // avant les QCM, comme le sujet réel.
+    if (activeMock?.penalty) {
+      const tfFirst = (qs: typeof picked) => [...qs.filter(isTrueFalse), ...qs.filter((q) => !isTrueFalse(q))];
+      const b = activeMock.bonus ?? 0;
+      picked = [...tfFirst(picked.slice(0, b)), ...tfFirst(picked.slice(b))];
+    }
     onStart({
       id: newId(),
       subject: code,

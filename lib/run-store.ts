@@ -8,6 +8,8 @@ export interface RunAnswer {
   selected: string[];
   validated: boolean;
   timeMs: number;
+  /** Entraînement : question passée volontairement, comptée sans réponse. */
+  skipped?: boolean;
 }
 
 export interface RunState {

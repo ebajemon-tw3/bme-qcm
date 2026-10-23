@@ -14,6 +14,7 @@ export interface MockScore {
 }
 
 // Barème réel d'un sujet blanc à points négatifs, calculé sur les réponses dans l'ordre du sujet.
+// Les bonus sont les premières questions du sujet.
 export function mockScore(answers: AnswerRecord[], bank: Question[], mock: MockExam): MockScore {
   const byId = new Map(bank.map((q) => [q.id, q]));
   const bonus = Math.min(mock.bonus ?? 0, answers.length);
@@ -31,7 +32,7 @@ export function mockScore(answers: AnswerRecord[], bank: Question[], mock: MockE
       tfWrong++;
     }
     points += p;
-    if (i >= answers.length - bonus) bonusPoints += p;
+    if (i < bonus) bonusPoints += p;
   });
   return { points, base: answers.length - bonus, bonusPoints, bonus, tfWrong, skipped };
 }
