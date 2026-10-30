@@ -121,6 +121,8 @@ export interface Subject {
   dir: string;
   title: string;
   sigle: string | null;
+  /** Colonne « Crédits » du tableau « Matières » du CLAUDE.md racine. */
+  credits?: number | null;
   identity: [string, string][];
   schedule: MdTable | null;
   teachers: MdTable | null;
@@ -155,6 +157,17 @@ export interface Stay {
   end: string;
 }
 
+export const PROGRESS_STATES = ["Validé", "En bonne voie", "En cours", "En attente de note", "À surveiller"] as const;
+export type ProgressState = (typeof PROGRESS_STATES)[number];
+
+// Section « Avancement des matières » de calendrier.md.
+export interface SubjectProgress {
+  code: string;
+  state: ProgressState;
+  done: string;
+  left: string;
+}
+
 export interface Bundle {
   version: 1;
   generatedAt: string;
@@ -165,5 +178,6 @@ export interface Bundle {
   stay?: Stay | null;
   // Période d'enseignement, section « Semestre » de calendrier.md.
   semester?: Stay | null;
+  progress?: SubjectProgress[];
   questions: Record<string, Question[]>;
 }

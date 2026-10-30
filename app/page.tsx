@@ -8,6 +8,7 @@ import { PageHeader, Section } from "@/components/page-header";
 import { SessionTable } from "@/components/session-table";
 import { StatGrid } from "@/components/stat-grid";
 import { StayProgress } from "@/components/stay-progress";
+import { SubjectProgressView } from "@/components/subject-progress";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { dayTime, isoDay, percent } from "@/lib/format";
@@ -49,6 +50,12 @@ export default function HomePage() {
       <PageHeader title="Tableau de bord">Données publiées le {dayTime(bundle.generatedAt)}.</PageHeader>
       <div className="flex flex-col gap-10">
         <StayProgress stay={bundle.stay} today={today} />
+
+        {bundle.progress?.length ? (
+          <Section title="Avancement des matières">
+            <SubjectProgressView progress={bundle.progress} subjects={bundle.subjects} />
+          </Section>
+        ) : null}
 
         <StatGrid
           items={[

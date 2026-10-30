@@ -9,8 +9,8 @@ import { copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { GENERATOR_IDS } from "../lib/types";
-import type { Bundle, Deadline, ExamPrep, MockExam, PdfDoc, Question, SessionBlock, Sheet, Stay, Subject, UndatedDeadline } from "../lib/types";
+import { GENERATOR_IDS, PROGRESS_STATES } from "../lib/types";
+import type { Bundle, Deadline, ExamPrep, MockExam, PdfDoc, ProgressState, Question, SessionBlock, Sheet, Stay, Subject, SubjectProgress, UndatedDeadline } from "../lib/types";
 import { findSection, firstTable, parseChapterList, parseDoc, stripMarkdown } from "./markdown";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -27,11 +27,18 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-async function subjectOrder(): Promise<string[]> {
+async function subjectIndex(): Promise<{ order: string[]; credits: Map<string, number> }> {
   const index = await readFile(path.join(COURS_DIR, "CLAUDE.md"), "utf8").catch(() => "");
   const table = firstTable(findSection(index, "Matières"));
   const col = table?.headers.findIndex((h) => h === "Code") ?? -1;
-  return table && col !== -1 ? table.rows.map((r) => stripMarkdown(r[col])) : [];
+  const creditCol = table?.headers.findIndex((h) => h === "Crédits") ?? -1;
+  if (!table || col === -1) return { order: [], credits: new Map() };
+  const credits = new Map<string, number>();
+  for (const r of table.rows) {
+    const n = Number(stripMarkdown(r[creditCol] ?? ""));
+    if (creditCol !== -1 && Number.isFinite(n) && n > 0) credits.set(stripMarkdown(r[col]), n);
+  }
+  return { order: table.rows.map((r) => stripMarkdown(r[col])), credits };
 }
 
 function validateQuestions(code: string, file: string, raw: unknown): Question[] {
@@ -135,11 +142,12 @@ async function loadSheets(dir: string): Promise<Sheet[]> {
 
 // PDF de révision exams/pdf/*.pdf, copiés dans public/fiches/<code>/. Titre : \doctitle de la
 // source LaTeX exams/latex/<nom>.tex quand elle existe, sinon le nom du fichier. Les PDF dont le nom
-// contient « annales » recopient des sujets de vik.wiki : ils restent locaux, le site est public.
+// contient « annales » recopient des sujets de vik.wiki, ceux qui commencent par « practice » les
+// séries d'entraînement de l'enseignant : ils restent locaux, le site est public.
 async function loadPdfs(code: string, dir: string): Promise<PdfDoc[]> {
   const src = path.join(dir, "exams", "pdf");
   if (!existsSync(src)) return [];
-  const files = (await readdir(src)).filter((f) => f.endsWith(".pdf") && !f.includes("annales")).sort();
+  const files = (await readdir(src)).filter((f) => f.endsWith(".pdf") && !f.includes("annales") && !f.startsWith("practice")).sort();
   const out = path.join(OUT_PDF, code);
   await mkdir(out, { recursive: true });
   return Promise.all(
@@ -305,6 +313,16 @@ async function loadCalendar(subjects: Subject[]) {
       type: stripMarkdown(row[4] ?? ""),
     }));
 
+  const progress: SubjectProgress[] = [];
+  for (const row of firstTable(findSection(md, "Avancement des matières"))?.rows ?? []) {
+    const sigle = stripMarkdown(row[0] ?? "");
+    const code = sigles.get(sigle);
+    const state = stripMarkdown(row[1] ?? "") as ProgressState;
+    if (!code) fail(`avancement : sigle inconnu « ${sigle} ».`);
+    if (!PROGRESS_STATES.includes(state)) fail(`avancement : état inconnu « ${state} » pour ${sigle}.`);
+    progress.push({ code, state, done: stripMarkdown(row[2] ?? ""), left: stripMarkdown(row[3] ?? "") });
+  }
+
   const undated: UndatedDeadline[] = (firstTable(findSection(md, "Échéances non datées"))?.rows ?? []).map(
     (row) => ({
       subjectLabel: stripMarkdown(row[0] ?? ""),
@@ -313,7 +331,7 @@ async function loadCalendar(subjects: Subject[]) {
       status: row[2] ?? "",
     }),
   );
-  return { dated, undated, stay: period(md, "Séjour"), semester: period(md, "Semestre") };
+  return { dated, undated, progress, stay: period(md, "Séjour"), semester: period(md, "Semestre") };
 }
 
 async function main() {
@@ -322,7 +340,7 @@ async function main() {
   const entries = (await readdir(COURS_DIR, { withFileTypes: true }))
     .filter((e) => e.isDirectory() && SUBJECT_DIR.test(e.name) && existsSync(path.join(COURS_DIR, e.name, "CLAUDE.md")))
     .map((e) => e.name);
-  const order = await subjectOrder();
+  const { order, credits } = await subjectIndex();
   const rank = (entry: string) => {
     const i = order.indexOf(entry.split("_")[0]);
     return i === -1 ? order.length : i;
@@ -334,10 +352,11 @@ async function main() {
   const questions: Record<string, Question[]> = {};
   for (const entry of entries) {
     const loaded = await loadSubject(entry);
+    loaded.subject.credits = credits.get(loaded.subject.code) ?? null;
     subjects.push(loaded.subject);
     if (loaded.questions.length > 0) questions[loaded.subject.code] = loaded.questions;
   }
-  const { dated, undated, stay, semester } = await loadCalendar(subjects);
+  const { dated, undated, progress, stay, semester } = await loadCalendar(subjects);
 
   const bundle: Bundle = {
     version: 1,
@@ -347,6 +366,7 @@ async function main() {
     undated,
     stay,
     semester,
+    progress,
     questions,
   };
 
@@ -360,6 +380,7 @@ async function main() {
     console.log(`  ${s.code.padEnd(15)} ${String(n).padStart(4)} questions  ${s.blocks.length} blocs de séance  ${s.sheets?.length ?? 0} fiches  ${s.pdfs?.length ?? 0} PDF${prep}`);
   }
   console.log(`Échéances : ${dated.length} datées, ${undated.length} non datées`);
+  console.log(`Avancement : ${progress.length} matières`);
   console.log(`Séjour : ${stay ? `${stay.start} au ${stay.end}` : "section absente de calendrier.md"}`);
   console.log(`Semestre : ${semester ? `${semester.start} au ${semester.end}` : "section absente de calendrier.md"}`);
   console.log(`Données : ${path.relative(ROOT, OUT_JSON)} (${(json.length / 1024).toFixed(0)} Ko)`);
